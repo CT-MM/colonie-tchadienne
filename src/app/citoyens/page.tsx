@@ -221,7 +221,7 @@ function CitoyensContent() {
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium text-gray-900">{c.nom} {c.prenom}</span>
                           {(c as any).aContribue && (
-                            <DollarSign size={15} className="text-green-500" title="A contribué" />
+                            <span title="A contribué"><DollarSign size={15} className="text-green-500" /></span>
                           )}
                         </div>
                         <span className="text-xs text-gray-400">{c.sexe === 'M' ? 'Homme' : 'Femme'}</span>
