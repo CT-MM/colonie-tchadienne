@@ -1,0 +1,127 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("viewer") // "admin", "bureau", or "viewer"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Citoyen {
+  id               String   @id @default(cuid())
+  // Informations personnelles
+  nom              String
+  prenom           String
+  dateNaissance    String
+  lieuNaissance    String
+  sexe             String   // "M" or "F"
+  nationalite      String   @default("Tchadienne")
+  telephone        String?
+  email            String?
+  photo            String?  // path to uploaded photo
+
+  // Localisation
+  ville            String   // "Moanda" or "Mounana"
+  quartier         String?
+  adresse          String?
+
+  // Situation professionnelle
+  profession       String?
+  employeur        String?
+  estEmploye       Boolean  @default(false)
+
+  // Situation familiale
+  situationFamiliale String? // "Célibataire", "Marié(e)", "Divorcé(e)", "Veuf/Veuve"
+  nombreEnfants    Int      @default(0)
+  familleAuGabon   Boolean  @default(false)
+
+  // Documents et statut
+  // Carte de séjour
+  carteSejour         String  @default("Non") // "Oui", "Non"
+  carteSejourNumero    String?
+  carteSejourExpiration String?
+
+  // Carte de colonie
+  carteColonie         String  @default("Non") // "Non", "Encours", "Ok"
+  carteColonieNumero   String?
+  carteColonieMontant  Float   @default(0)
+
+  // Situation régularité
+  situationRegularite  String  @default("Irrégulier") // "Régulier", "Irrégulier", "En cours"
+
+  // Passeport
+  passeport            String  @default("Non") // "Oui", "Non"
+  passeportNumero      String?
+  passeportExpiration  String?
+
+  // Numéro de carte unique pour le portail citoyen
+  numeroCarte      String?  @unique
+  // Code PIN 6 chiffres pour le portail citoyen
+  pin              String?
+
+  // Notes
+  observations     String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  contributions    Contribution[]
+  membreBureau     MembreBureau?
+}
+
+model Contribution {
+  id          String   @id @default(cuid())
+  montant     Float
+  date        String
+  description String?
+  citoyenId   String
+  citoyen     Citoyen  @relation(fields: [citoyenId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model Depense {
+  id          String   @id @default(cuid())
+  montant     Float
+  date        String
+  motif       String
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model MembreBureau {
+  id        String   @id @default(cuid())
+  fonction  String
+  categorie String   @default("executif") // "executif", "religieux", "conseiller"
+  ordre     Int      @default(0)
+  citoyenId String   @unique
+  citoyen   Citoyen  @relation(fields: [citoyenId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Evenement {
+  id          String   @id @default(cuid())
+  titre       String
+  description String?
+  date        String
+  heure       String?
+  lieu        String?
+  type        String   @default("reunion") // "reunion", "fete", "assemblee", "autre"
+  createdAt   DateTime @default(now())
+}
+
+model Charte {
+  id       String @id @default(cuid())
+  contenu  String
+  updatedAt DateTime @updatedAt
+}
