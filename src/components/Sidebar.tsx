@@ -27,7 +27,7 @@ const navItems = [
   { href: '/bureau', label: 'Bureau exécutif', icon: Crown },
   { href: '/evenements', label: 'Événements', icon: Calendar },
   { href: '/charte', label: 'Charte', icon: BookOpen },
-  { href: '/carte-generator', label: 'Générateur de carte', icon: CreditCard, bureauOnly: true },
+  { href: '/carte-generator', label: 'Générateur de carte', icon: CreditCard, adminOnly: true },
 ]
 
 export default function Sidebar() {

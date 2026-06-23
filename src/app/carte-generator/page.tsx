@@ -217,7 +217,7 @@ function CarteGeneratorContent() {
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
-    if (status === 'authenticated' && !isAdmin && (session?.user as any)?.role !== 'bureau') {
+    if (status === 'authenticated' && !isAdmin) {
       router.push('/')
     }
   }, [status, session, router, isAdmin])
