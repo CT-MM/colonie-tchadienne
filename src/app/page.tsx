@@ -140,7 +140,7 @@ export default function Dashboard() {
           <>
             {/* Row 1 — General */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <StatCard icon={Users} label="Total citoyens" value={stats.totalCitoyens} color="blue" />
+              <StatCard icon={Users} label="Total membres" value={stats.totalCitoyens} color="blue" />
               <StatCard icon={MapPin} label="Moanda" value={stats.parVille.Moanda} color="yellow" />
               <StatCard icon={MapPin} label="Mounana" value={stats.parVille.Mounana} color="red" />
               <StatCard

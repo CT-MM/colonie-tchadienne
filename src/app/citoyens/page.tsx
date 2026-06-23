@@ -76,7 +76,7 @@ function CitoyensContent() {
   }, [status, fetchCitoyens])
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer ce citoyen ?')) return
+    if (!confirm('Supprimer ce membre ?')) return
     await fetch(`/api/citoyens/${id}`, { method: 'DELETE' })
     fetchCitoyens()
   }
@@ -124,13 +124,13 @@ function CitoyensContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Citoyens</h1>
-            <p className="text-gray-500">{total} personnes enregistrées</p>
+            <h1 className="text-2xl font-bold text-gray-900">Membres</h1>
+            <p className="text-gray-500">{total} membres enregistrés</p>
           </div>
           {isAdmin && (
             <Link href="/citoyens/nouveau" className="btn-primary flex items-center gap-2 mt-3 sm:mt-0 w-fit">
               <UserPlus size={18} />
-              Nouveau citoyen
+              Nouveau membre
             </Link>
           )}
         </div>
@@ -200,7 +200,7 @@ function CitoyensContent() {
                 ) : citoyens.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-gray-400">
-                      Aucun citoyen trouvé
+                      Aucun membre trouvé
                     </td>
                   </tr>
                 ) : (

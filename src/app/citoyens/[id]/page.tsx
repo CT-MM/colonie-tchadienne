@@ -55,7 +55,7 @@ function CitoyenDetailContent() {
   if (!citoyen) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Citoyen non trouvé</p>
+        <p className="text-gray-500">Membre non trouvé</p>
       </div>
     )
   }

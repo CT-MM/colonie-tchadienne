@@ -165,7 +165,7 @@ export default function TresoreriePage() {
 
     html += `<h2>CONTRIBUTIONS (${contribs.count} entrées)</h2>`
     if (contribs.data.length > 0) {
-      html += `<table><tr><th>Date</th><th>Citoyen</th><th>Ville</th><th>Montant</th><th>Description</th></tr>`
+      html += `<table><tr><th>Date</th><th>Membre</th><th>Ville</th><th>Montant</th><th>Description</th></tr>`
       for (const c of contribs.data) {
         html += `<tr><td>${new Date(c.date).toLocaleDateString('fr-FR')}</td><td>${c.citoyen.nom} ${c.citoyen.prenom}</td><td>${c.citoyen.ville}</td><td>${formatMontant(c.montant)}</td><td>${c.description || '-'}</td></tr>`
       }
@@ -298,7 +298,7 @@ export default function TresoreriePage() {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-3 font-semibold text-gray-600">Date</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-600">Citoyen</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-600">Membre</th>
                     <th className="text-left py-3 px-3 font-semibold text-gray-600">Ville</th>
                     <th className="text-right py-3 px-3 font-semibold text-gray-600">Montant</th>
                     <th className="text-left py-3 px-3 font-semibold text-gray-600">Description</th>
@@ -396,7 +396,7 @@ export default function TresoreriePage() {
 
             <div className="space-y-4">
               <div>
-                <label className="label-field">Rechercher un citoyen *</label>
+                <label className="label-field">Rechercher un membre *</label>
                 {selectedCitoyen ? (
                   <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
                     <DollarSign size={16} className="text-green-600" />

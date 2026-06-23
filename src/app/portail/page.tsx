@@ -162,7 +162,7 @@ export default function PortailPage() {
           <span className="text-[#002664] font-black text-xl">CT</span>
         </div>
         <h1 className="text-2xl font-bold text-white">Colonie Tchadienne</h1>
-        <p className="text-white/60 text-sm">Moanda & Mounana — Portail citoyen</p>
+        <p className="text-white/60 text-sm">Moanda & Mounana — Portail membre</p>
         <div className="flex gap-1 justify-center mt-2">
           <div className="w-6 h-1 bg-[#002664] rounded" />
           <div className="w-6 h-1 bg-[#FECB00] rounded" />

@@ -21,8 +21,8 @@ import { useState } from 'react'
 
 const navItems = [
   { href: '/', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/citoyens', label: 'Citoyens', icon: Users },
-  { href: '/citoyens/nouveau', label: 'Nouveau citoyen', icon: UserPlus, adminOnly: true },
+  { href: '/citoyens', label: 'Membres', icon: Users },
+  { href: '/citoyens/nouveau', label: 'Nouveau membre', icon: UserPlus, adminOnly: true },
   { href: '/tresorerie', label: 'Trésorerie', icon: Wallet },
   { href: '/bureau', label: 'Bureau exécutif', icon: Crown },
   { href: '/evenements', label: 'Événements', icon: Calendar },

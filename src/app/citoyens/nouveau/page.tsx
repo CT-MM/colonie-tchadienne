@@ -30,8 +30,8 @@ export default function NouveauCitoyenPage() {
             <ArrowLeft size={16} />
             Retour à la liste
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Nouveau citoyen</h1>
-          <p className="text-gray-500">Enregistrer un nouveau membre de la communauté</p>
+          <h1 className="text-2xl font-bold text-gray-900">Nouveau membre</h1>
+          <p className="text-gray-500">Enregistrer un nouveau membre de la colonie</p>
         </div>
         <CitoyenForm />
       </main>

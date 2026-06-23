@@ -229,9 +229,9 @@ export default function BureauPage() {
                 </div>
               </div>
 
-              {/* Rechercher citoyen */}
+              {/* Rechercher membre */}
               <div>
-                <label className="label-field">Rechercher un citoyen *</label>
+                <label className="label-field">Rechercher un membre *</label>
                 {selectedCitoyen ? (
                   <div className="flex items-center gap-2 p-3 bg-[#002664]/5 rounded-lg border border-[#002664]/20">
                     <User size={16} className="text-[#002664]" />
