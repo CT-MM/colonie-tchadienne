@@ -27,7 +27,7 @@ const navItems = [
   { href: '/bureau', label: 'Bureau exécutif', icon: Crown },
   { href: '/evenements', label: 'Événements', icon: Calendar },
   { href: '/charte', label: 'Charte', icon: BookOpen },
-  { href: '/carte-generator', label: 'Générateur de carte', icon: CreditCard },
+  { href: '/carte-generator', label: 'Générateur de carte', icon: CreditCard, bureauOnly: true },
 ]
 
 export default function Sidebar() {
@@ -85,6 +85,7 @@ export default function Sidebar() {
           <ul className="space-y-1">
             {navItems.map((item) => {
               if (item.adminOnly && !isAdmin) return null
+              if ((item as any).bureauOnly && !isAdmin && (session?.user as any)?.role !== 'bureau') return null
               const isActive = pathname === item.href
               return (
                 <li key={item.href}>
