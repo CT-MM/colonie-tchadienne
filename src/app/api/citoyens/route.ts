@@ -71,14 +71,16 @@ export async function POST(req: NextRequest) {
 
   const citoyen = await prisma.citoyen.create({ data })
 
-  await prisma.contribution.create({
-    data: {
-      montant: 5000,
-      date: new Date().toISOString().split('T')[0],
-      description: 'Frais d\'enregistrement',
-      citoyenId: citoyen.id,
-    },
-  })
+  if (data.carteColonie === 'Ok' || data.carteColonie === 'Encours') {
+    await prisma.contribution.create({
+      data: {
+        montant: 5000,
+        date: new Date().toISOString().split('T')[0],
+        description: 'Frais d\'enregistrement',
+        citoyenId: citoyen.id,
+      },
+    })
+  }
 
   return NextResponse.json(citoyen, { status: 201 })
 }
