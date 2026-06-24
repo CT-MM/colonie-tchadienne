@@ -107,6 +107,8 @@ function CarteContent({ selected, layout }: { selected: any; layout: CardLayout 
           height: `${layout.photo.height}%`,
           borderRadius: '6px',
           background: '#fff',
+          border: '3px solid #ffffff',
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.08)',
         }}
       >
         {selected?.photo ? (
@@ -183,6 +185,13 @@ function FieldEditor({ label, field, layout, setLayout }: {
           <div className="flex items-center gap-1">
             <span className="text-[10px] text-gray-400 w-5">W%</span>
             <input type="number" step="0.5" value={val.width} onChange={(e) => update('width', e.target.value)}
+              className="w-full text-xs border rounded px-1.5 py-0.5" />
+          </div>
+        )}
+        {'height' in val && (
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-gray-400 w-5">H%</span>
+            <input type="number" step="0.5" value={val.height} onChange={(e) => update('height', e.target.value)}
               className="w-full text-xs border rounded px-1.5 py-0.5" />
           </div>
         )}
@@ -290,23 +299,36 @@ function CarteGeneratorContent() {
       const py = (CARTE_H * parseFloat(layout.photo.top)) / 100
       const pw = (CARTE_W * parseFloat(layout.photo.width)) / 100
       const ph = (CARTE_H * parseFloat(layout.photo.height)) / 100
+      const r = 6
+      const borderW = 3
+
+      const roundedRect = (x: number, y: number, w: number, h: number, radius: number) => {
+        ctx.beginPath()
+        ctx.moveTo(x + radius, y)
+        ctx.lineTo(x + w - radius, y)
+        ctx.quadraticCurveTo(x + w, y, x + w, y + radius)
+        ctx.lineTo(x + w, y + h - radius)
+        ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h)
+        ctx.lineTo(x + radius, y + h)
+        ctx.quadraticCurveTo(x, y + h, x, y + h - radius)
+        ctx.lineTo(x, y + radius)
+        ctx.quadraticCurveTo(x, y, x + radius, y)
+        ctx.closePath()
+      }
+
+      // White border
+      ctx.save()
+      roundedRect(px - borderW, py - borderW, pw + borderW * 2, ph + borderW * 2, r + borderW)
+      ctx.fillStyle = '#ffffff'
+      ctx.fill()
+      ctx.restore()
+
       if (selected.photo) {
         try {
           const photoImg = await loadImage(selected.photo)
           ctx.save()
-          ctx.beginPath()
-          const r = 6
-          ctx.moveTo(px + r, py)
-          ctx.lineTo(px + pw - r, py)
-          ctx.quadraticCurveTo(px + pw, py, px + pw, py + r)
-          ctx.lineTo(px + pw, py + ph - r)
-          ctx.quadraticCurveTo(px + pw, py + ph, px + pw - r, py + ph)
-          ctx.lineTo(px + r, py + ph)
-          ctx.quadraticCurveTo(px, py + ph, px, py + ph - r)
-          ctx.lineTo(px, py + r)
-          ctx.quadraticCurveTo(px, py, px + r, py)
+          roundedRect(px, py, pw, ph, r)
           ctx.clip()
-          // Cover fit
           const imgRatio = photoImg.width / photoImg.height
           const boxRatio = pw / ph
           let sx = 0, sy = 0, sw = photoImg.width, sh = photoImg.height
@@ -321,11 +343,13 @@ function CarteGeneratorContent() {
           ctx.restore()
         } catch {
           ctx.fillStyle = '#f9fafb'
-          ctx.fillRect(px, py, pw, ph)
+          roundedRect(px, py, pw, ph, r)
+          ctx.fill()
         }
       } else {
         ctx.fillStyle = '#f9fafb'
-        ctx.fillRect(px, py, pw, ph)
+        roundedRect(px, py, pw, ph, r)
+        ctx.fill()
       }
 
       // Draw card number
