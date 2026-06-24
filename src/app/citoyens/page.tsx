@@ -52,6 +52,7 @@ function CitoyensContent() {
   const [showFilters, setShowFilters] = useState(false)
   const [quartiers, setQuartiers] = useState<Record<string, string[]>>({})
   const [exporting, setExporting] = useState(false)
+  const [validatingId, setValidatingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -228,6 +229,17 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
     if (!confirm('Supprimer ce membre ?')) return
     await fetch(`/api/citoyens/${id}`, { method: 'DELETE' })
     fetchCitoyens()
+  }
+
+  const handleValidateCarte = async (id: string) => {
+    setValidatingId(id)
+    await fetch(`/api/citoyens/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ carteColonie: 'Ok' }),
+    })
+    setCitoyens(prev => prev.map(c => c.id === id ? { ...c, carteColonie: 'Ok' } : c))
+    setValidatingId(null)
   }
 
   const clearFilters = () => {
@@ -477,7 +489,21 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                       <td className="p-4 text-gray-600">{c.ville}</td>
                       <td className="p-4 text-gray-600">{c.telephone || '—'}</td>
                       <td className="p-4">{statusBadge(c.carteSejour)}</td>
-                      <td className="p-4">{statusBadge(c.carteColonie)}</td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1.5">
+                          {statusBadge(c.carteColonie)}
+                          {isAdmin && c.carteColonie !== 'Ok' && (
+                            <button
+                              onClick={() => handleValidateCarte(c.id)}
+                              disabled={validatingId === c.id}
+                              className="p-1 hover:bg-green-50 rounded text-green-600 hover:text-green-700 transition-colors disabled:opacity-50"
+                              title="Valider la carte"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-4">{statusBadge(c.situationRegularite)}</td>
                       <td className="p-4">
                         <div className="flex items-center gap-1">
