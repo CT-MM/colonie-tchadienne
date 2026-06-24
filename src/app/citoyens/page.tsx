@@ -8,7 +8,7 @@ import Link from 'next/link'
 import {
   Search, Filter, Eye, Edit, Trash2, ChevronLeft, ChevronRight,
   UserPlus, CheckCircle, Clock, XCircle, DollarSign,
-  ArrowUpAZ, ArrowDownZA, Download, ChevronDown, X,
+  ArrowUpAZ, ArrowDownZA, Download, ChevronDown, X, FileText,
 } from 'lucide-react'
 
 interface Citoyen {
@@ -113,6 +113,111 @@ function CitoyensContent() {
     setExporting(false)
   }
 
+  const handleExportPDF = async () => {
+    setExporting(true)
+    const params = buildParams()
+    params.set('limit', '2000')
+    const res = await fetch(`/api/citoyens?${params}`)
+    const data = await res.json()
+    const list = data.citoyens || []
+
+    const sorted = [...list].sort((a: any, b: any) => a.nom.localeCompare(b.nom))
+
+    const win = window.open('', '_blank')
+    if (!win) { setExporting(false); return }
+
+    const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+    const filterDesc = [
+      ville && `Ville: ${ville}`,
+      quartier && `Quartier: ${quartier}`,
+      carteColonie && `Carte: ${carteColonie}`,
+      situationFamiliale && `Famille: ${situationFamiliale}`,
+      familleAuGabon && `Famille au Gabon: ${familleAuGabon === 'true' ? 'Oui' : 'Non'}`,
+      statut && `Régularité: ${statut}`,
+    ].filter(Boolean).join(' | ')
+
+    const rows = sorted.map((c: any, i: number) => `
+      <tr>
+        <td style="text-align:center;font-weight:600;color:#666">${i + 1}</td>
+        <td style="text-align:center">
+          ${c.photo
+            ? `<img src="${c.photo}" style="width:45px;height:45px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb" />`
+            : `<div style="width:45px;height:45px;border-radius:50%;background:#f3f4f6;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:#002664;font-size:14px;border:2px solid #e5e7eb">${c.prenom[0]}${c.nom[0]}</div>`
+          }
+        </td>
+        <td><strong>${c.nom} ${c.prenom}</strong><br/><span style="color:#888;font-size:11px">${c.sexe === 'M' ? 'Homme' : 'Femme'}${c.ville ? ' — ' + c.ville : ''}</span></td>
+        <td style="font-family:monospace;font-size:13px">${c.telephone || '—'}</td>
+        <td style="font-family:monospace;font-weight:600;color:#002664;font-size:13px">${c.numeroCarte || '—'}</td>
+        <td style="text-align:center">
+          <span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;${
+            c.carteColonie === 'Ok' ? 'background:#dcfce7;color:#15803d' :
+            c.carteColonie === 'Encours' ? 'background:#fef9c3;color:#a16207' :
+            'background:#fee2e2;color:#dc2626'
+          }">${c.carteColonie}</span>
+        </td>
+      </tr>
+    `).join('')
+
+    win.document.write(`<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8"/>
+<title>Liste des membres - Colonie Tchadienne</title>
+<style>
+  @page { size: A4 landscape; margin: 12mm; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color:#1f2937; font-size:13px; }
+  .header { background: linear-gradient(135deg, #002664 0%, #001a4d 100%); color:white; padding:20px 30px; display:flex; align-items:center; justify-content:space-between; border-radius:8px; margin-bottom:16px; }
+  .header h1 { font-size:22px; margin:0; }
+  .header .sub { opacity:0.7; font-size:13px; margin-top:2px; }
+  .header .right { text-align:right; }
+  .header .count { font-size:28px; font-weight:800; color:#FECB00; }
+  .filters { font-size:11px; color:#666; margin-bottom:10px; padding:0 4px; }
+  table { width:100%; border-collapse:collapse; }
+  thead th { background:#f8fafc; padding:10px 12px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; border-bottom:2px solid #e2e8f0; }
+  tbody td { padding:8px 12px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+  tbody tr:hover { background:#f8fafc; }
+  .footer { text-align:center; margin-top:16px; font-size:10px; color:#9ca3af; border-top:1px solid #e5e7eb; padding-top:8px; }
+  .flag { display:inline-flex; gap:0; margin-right:12px; }
+  .flag div { width:8px; height:30px; }
+</style>
+</head><body>
+<div class="header">
+  <div style="display:flex;align-items:center">
+    <div class="flag"><div style="background:#002664;border-radius:3px 0 0 3px"></div><div style="background:#FECB00"></div><div style="background:#C60C30;border-radius:0 3px 3px 0"></div></div>
+    <div>
+      <h1>Colonie Tchadienne — Moanda & Mounana</h1>
+      <div class="sub">Liste des membres au ${today}</div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="count">${sorted.length}</div>
+    <div style="font-size:11px;opacity:0.7">membres</div>
+  </div>
+</div>
+${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
+<table>
+  <thead>
+    <tr>
+      <th style="width:40px;text-align:center">N°</th>
+      <th style="width:65px;text-align:center">Photo</th>
+      <th>Nom & Prénom</th>
+      <th style="width:130px">Téléphone</th>
+      <th style="width:120px">N° Carte</th>
+      <th style="width:90px;text-align:center">Carte</th>
+    </tr>
+  </thead>
+  <tbody>${rows}</tbody>
+</table>
+<div class="footer">Colonie Tchadienne de Moanda & Mounana — Document généré le ${today}</div>
+<script>
+  window.onload = function() { setTimeout(function() { window.print(); }, 500); }
+</script>
+</body></html>`)
+    win.document.close()
+    setExporting(false)
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer ce membre ?')) return
     await fetch(`/api/citoyens/${id}`, { method: 'DELETE' })
@@ -170,12 +275,20 @@ function CitoyensContent() {
           </div>
           <div className="flex gap-2 mt-3 sm:mt-0 flex-wrap">
             <button
+              onClick={handleExportPDF}
+              disabled={exporting}
+              className="btn-secondary flex items-center gap-2 text-sm disabled:opacity-50"
+            >
+              <FileText size={16} />
+              PDF
+            </button>
+            <button
               onClick={handleExport}
               disabled={exporting}
               className="btn-secondary flex items-center gap-2 text-sm disabled:opacity-50"
             >
               <Download size={16} />
-              {exporting ? 'Export...' : 'Télécharger la liste'}
+              CSV
             </button>
             {isAdmin && (
               <Link href="/citoyens/nouveau" className="btn-primary flex items-center gap-2 w-fit">
