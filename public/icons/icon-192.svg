@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <circle cx="96" cy="96" r="96" fill="#002664"/>
+  <text x="96" y="86" text-anchor="middle" dominant-baseline="middle" fill="#FECB00" font-size="67" font-weight="bold" font-family="Arial,sans-serif">CT</text>
+  <text x="96" y="138" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="29" font-weight="bold" font-family="Arial,sans-serif">MM</text>
+</svg>

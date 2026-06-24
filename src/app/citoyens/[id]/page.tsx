@@ -30,6 +30,7 @@ function CitoyenDetailContent() {
 
   const [citoyen, setCitoyen] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [validating, setValidating] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -121,17 +122,38 @@ function CitoyenDetailContent() {
               {citoyen.nom} {citoyen.prenom}
             </h1>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {isAdmin && citoyen.carteColonie !== 'Ok' && (
+              <button
+                onClick={async () => {
+                  setValidating(true)
+                  await fetch(`/api/citoyens/${params.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ carteColonie: 'Ok' }),
+                  })
+                  setCitoyen({ ...citoyen, carteColonie: 'Ok' })
+                  setValidating(false)
+                }}
+                disabled={validating}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm font-medium"
+              >
+                <CheckCircle size={16} />
+                {validating ? 'Validation...' : 'Valider la carte'}
+              </button>
+            )}
             {isAdmin && (
               <Link href={`/citoyens/${params.id}?edit=true`} className="btn-primary flex items-center gap-2">
                 <Edit size={16} />
                 Modifier
               </Link>
             )}
-            <Link href={`/carte-generator?id=${params.id}`} className="btn-secondary flex items-center gap-2">
-              <CreditCard size={16} />
-              Générer carte
-            </Link>
+            {isAdmin && (
+              <Link href={`/carte-generator?id=${params.id}`} className="btn-secondary flex items-center gap-2">
+                <CreditCard size={16} />
+                Générer carte
+              </Link>
+            )}
           </div>
         </div>
 

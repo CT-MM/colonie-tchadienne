@@ -18,6 +18,8 @@ import {
   Clock,
   XCircle,
   DollarSign,
+  ArrowUpAZ,
+  ArrowDownZA,
 } from 'lucide-react'
 
 interface Citoyen {
@@ -50,6 +52,7 @@ function CitoyensContent() {
   const [ville, setVille] = useState(searchParams.get('ville') || '')
   const [statut, setStatut] = useState(searchParams.get('statut') || '')
   const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'))
+  const [sortOrder, setSortOrder] = useState<'default' | 'az' | 'za'>('default')
 
   const fetchCitoyens = useCallback(async () => {
     setLoading(true)
@@ -137,7 +140,7 @@ function CitoyensContent() {
 
         {/* Filters */}
         <div className="card mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
             <div className="sm:col-span-2 relative">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -167,6 +170,16 @@ function CitoyensContent() {
               <option value="Irrégulier">Irrégulier</option>
               <option value="En cours">En cours</option>
             </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'az' ? 'za' : sortOrder === 'za' ? 'default' : 'az')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                sortOrder !== 'default' ? 'border-tchad-blue bg-tchad-blue/5 text-tchad-blue' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}
+              title={sortOrder === 'az' ? 'Tri A→Z' : sortOrder === 'za' ? 'Tri Z→A' : 'Tri par défaut'}
+            >
+              {sortOrder === 'za' ? <ArrowDownZA size={16} /> : <ArrowUpAZ size={16} />}
+              {sortOrder === 'az' ? 'A→Z' : sortOrder === 'za' ? 'Z→A' : 'Trier'}
+            </button>
           </div>
         </div>
 
@@ -204,7 +217,11 @@ function CitoyensContent() {
                     </td>
                   </tr>
                 ) : (
-                  citoyens.map((c) => (
+                  [...citoyens].sort((a, b) => {
+                    if (sortOrder === 'az') return a.nom.localeCompare(b.nom)
+                    if (sortOrder === 'za') return b.nom.localeCompare(a.nom)
+                    return 0
+                  }).map((c) => (
                     <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
                       <td className="p-4">
                         <div className="w-10 h-10 bg-tchad-blue/10 rounded-full overflow-hidden flex items-center justify-center">

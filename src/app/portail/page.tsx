@@ -182,7 +182,14 @@ export default function PortailPage() {
               <CreditCard size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
               <input
                 value={numero}
-                onChange={(e) => { setNumero(e.target.value.toUpperCase()); setError('') }}
+                onChange={(e) => {
+                  let v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+                  if (v.length > 2 && !v.startsWith('CT')) v = 'CT' + v.replace(/^CT/, '')
+                  if (v.length > 2) v = v.slice(0, 2) + '-' + v.slice(2)
+                  if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5)
+                  if (v.length > 9) v = v.slice(0, 9)
+                  setNumero(v); setError('')
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#002664] focus:ring-0 outline-none text-center font-mono font-bold tracking-wider"
                 placeholder="CT-MM-001"
