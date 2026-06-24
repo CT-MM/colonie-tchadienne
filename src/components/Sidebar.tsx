@@ -16,6 +16,7 @@ import {
   Crown,
   Calendar,
   BookOpen,
+  KeyRound,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -28,6 +29,7 @@ const navItems = [
   { href: '/evenements', label: 'Événements', icon: Calendar },
   { href: '/charte', label: 'Charte', icon: BookOpen },
   { href: '/carte-generator', label: 'Générateur de carte', icon: CreditCard, adminOnly: true },
+  { href: '/gestion-comptes', label: 'Gestion des comptes', icon: KeyRound, adminOnly: true },
 ]
 
 export default function Sidebar() {
