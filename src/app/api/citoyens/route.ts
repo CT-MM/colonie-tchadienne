@@ -11,6 +11,10 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get('search') || ''
   const ville = searchParams.get('ville') || ''
   const statut = searchParams.get('statut') || ''
+  const quartier = searchParams.get('quartier') || ''
+  const situationFamiliale = searchParams.get('situationFamiliale') || ''
+  const familleAuGabon = searchParams.get('familleAuGabon') || ''
+  const carteColonie = searchParams.get('carteColonie') || ''
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '20')
 
@@ -25,6 +29,10 @@ export async function GET(req: NextRequest) {
   }
   if (ville) where.ville = ville
   if (statut) where.situationRegularite = statut
+  if (quartier) where.quartier = quartier
+  if (situationFamiliale) where.situationFamiliale = situationFamiliale
+  if (familleAuGabon) where.familleAuGabon = familleAuGabon === 'true'
+  if (carteColonie) where.carteColonie = carteColonie
 
   const [citoyens, total] = await Promise.all([
     prisma.citoyen.findMany({

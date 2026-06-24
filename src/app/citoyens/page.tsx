@@ -6,20 +6,9 @@ import { useEffect, useState, useCallback, Suspense } from 'react'
 import Sidebar from '@/components/Sidebar'
 import Link from 'next/link'
 import {
-  Search,
-  Filter,
-  Eye,
-  Edit,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  UserPlus,
-  CheckCircle,
-  Clock,
-  XCircle,
-  DollarSign,
-  ArrowUpAZ,
-  ArrowDownZA,
+  Search, Filter, Eye, Edit, Trash2, ChevronLeft, ChevronRight,
+  UserPlus, CheckCircle, Clock, XCircle, DollarSign,
+  ArrowUpAZ, ArrowDownZA, Download, ChevronDown, X,
 } from 'lucide-react'
 
 interface Citoyen {
@@ -28,11 +17,14 @@ interface Citoyen {
   prenom: string
   sexe: string
   ville: string
+  quartier?: string
   telephone?: string
   profession?: string
   carteSejour: string
   carteColonie: string
   situationRegularite: string
+  situationFamiliale?: string
+  familleAuGabon?: boolean
   estEmploye: boolean
   photo?: string
   createdAt: string
@@ -51,24 +43,47 @@ function CitoyensContent() {
   const [search, setSearch] = useState(searchParams.get('search') || '')
   const [ville, setVille] = useState(searchParams.get('ville') || '')
   const [statut, setStatut] = useState(searchParams.get('statut') || '')
+  const [quartier, setQuartier] = useState('')
+  const [situationFamiliale, setSituationFamiliale] = useState('')
+  const [familleAuGabon, setFamilleAuGabon] = useState('')
+  const [carteColonie, setCarteColonie] = useState('')
   const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'))
   const [sortOrder, setSortOrder] = useState<'default' | 'az' | 'za'>('default')
+  const [showFilters, setShowFilters] = useState(false)
+  const [quartiers, setQuartiers] = useState<Record<string, string[]>>({})
+  const [exporting, setExporting] = useState(false)
 
-  const fetchCitoyens = useCallback(async () => {
-    setLoading(true)
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/citoyens/quartiers').then((r) => r.json()).then(setQuartiers)
+    }
+  }, [status])
+
+  const activeFilterCount = [statut, quartier, situationFamiliale, familleAuGabon, carteColonie].filter(Boolean).length
+
+  const buildParams = useCallback(() => {
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (ville) params.set('ville', ville)
     if (statut) params.set('statut', statut)
-    params.set('page', page.toString())
+    if (quartier) params.set('quartier', quartier)
+    if (situationFamiliale) params.set('situationFamiliale', situationFamiliale)
+    if (familleAuGabon) params.set('familleAuGabon', familleAuGabon)
+    if (carteColonie) params.set('carteColonie', carteColonie)
+    return params
+  }, [search, ville, statut, quartier, situationFamiliale, familleAuGabon, carteColonie])
 
+  const fetchCitoyens = useCallback(async () => {
+    setLoading(true)
+    const params = buildParams()
+    params.set('page', page.toString())
     const res = await fetch(`/api/citoyens?${params}`)
     const data = await res.json()
     setCitoyens(data.citoyens)
     setTotal(data.total)
     setPages(data.pages)
     setLoading(false)
-  }, [search, ville, statut, page])
+  }, [buildParams, page])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -78,30 +93,51 @@ function CitoyensContent() {
     if (status === 'authenticated') fetchCitoyens()
   }, [status, fetchCitoyens])
 
+  useEffect(() => {
+    if (ville) {
+      setQuartier('')
+    }
+  }, [ville])
+
+  const handleExport = async () => {
+    setExporting(true)
+    const params = buildParams()
+    const res = await fetch(`/api/citoyens/export?${params}`)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `membres-colonie-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    setExporting(false)
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer ce membre ?')) return
     await fetch(`/api/citoyens/${id}`, { method: 'DELETE' })
     fetchCitoyens()
   }
 
+  const clearFilters = () => {
+    setStatut('')
+    setQuartier('')
+    setSituationFamiliale('')
+    setFamilleAuGabon('')
+    setCarteColonie('')
+    setPage(1)
+  }
+
   const statusBadge = (val: string) => {
     const styles: Record<string, string> = {
-      'Oui': 'bg-green-100 text-green-700',
-      'Ok': 'bg-green-100 text-green-700',
-      'Régulier': 'bg-green-100 text-green-700',
-      'Encours': 'bg-yellow-100 text-yellow-700',
-      'En cours': 'bg-yellow-100 text-yellow-700',
-      'Non': 'bg-red-100 text-red-700',
-      'Irrégulier': 'bg-red-100 text-red-700',
+      'Oui': 'bg-green-100 text-green-700', 'Ok': 'bg-green-100 text-green-700', 'Régulier': 'bg-green-100 text-green-700',
+      'Encours': 'bg-yellow-100 text-yellow-700', 'En cours': 'bg-yellow-100 text-yellow-700',
+      'Non': 'bg-red-100 text-red-700', 'Irrégulier': 'bg-red-100 text-red-700',
     }
     const icons: Record<string, any> = {
-      'Oui': CheckCircle,
-      'Ok': CheckCircle,
-      'Régulier': CheckCircle,
-      'Encours': Clock,
-      'En cours': Clock,
-      'Non': XCircle,
-      'Irrégulier': XCircle,
+      'Oui': CheckCircle, 'Ok': CheckCircle, 'Régulier': CheckCircle,
+      'Encours': Clock, 'En cours': Clock,
+      'Non': XCircle, 'Irrégulier': XCircle,
     }
     const Icon = icons[val] || XCircle
     return (
@@ -120,6 +156,8 @@ function CitoyensContent() {
     )
   }
 
+  const availableQuartiers = ville ? (quartiers[ville] || []) : Object.values(quartiers).flat().filter((v, i, a) => a.indexOf(v) === i).sort()
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
@@ -130,17 +168,27 @@ function CitoyensContent() {
             <h1 className="text-2xl font-bold text-gray-900">Membres</h1>
             <p className="text-gray-500">{total} membres enregistrés</p>
           </div>
-          {isAdmin && (
-            <Link href="/citoyens/nouveau" className="btn-primary flex items-center gap-2 mt-3 sm:mt-0 w-fit">
-              <UserPlus size={18} />
-              Nouveau membre
-            </Link>
-          )}
+          <div className="flex gap-2 mt-3 sm:mt-0 flex-wrap">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="btn-secondary flex items-center gap-2 text-sm disabled:opacity-50"
+            >
+              <Download size={16} />
+              {exporting ? 'Export...' : 'Télécharger la liste'}
+            </button>
+            {isAdmin && (
+              <Link href="/citoyens/nouveau" className="btn-primary flex items-center gap-2 w-fit">
+                <UserPlus size={18} />
+                Nouveau membre
+              </Link>
+            )}
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="card mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+        {/* Search + quick filters */}
+        <div className="card mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div className="sm:col-span-2 relative">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -151,37 +199,101 @@ function CitoyensContent() {
                 className="input-field pl-10"
               />
             </div>
-            <select
-              value={ville}
-              onChange={(e) => { setVille(e.target.value); setPage(1) }}
-              className="select-field"
-            >
+            <select value={ville} onChange={(e) => { setVille(e.target.value); setPage(1) }} className="select-field">
               <option value="">Toutes les villes</option>
               <option value="Moanda">Moanda</option>
               <option value="Mounana">Mounana</option>
             </select>
-            <select
-              value={statut}
-              onChange={(e) => { setStatut(e.target.value); setPage(1) }}
-              className="select-field"
-            >
-              <option value="">Tous les statuts</option>
-              <option value="Régulier">Régulier</option>
-              <option value="Irrégulier">Irrégulier</option>
-              <option value="En cours">En cours</option>
-            </select>
-            <button
-              onClick={() => setSortOrder(sortOrder === 'az' ? 'za' : sortOrder === 'za' ? 'default' : 'az')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                sortOrder !== 'default' ? 'border-tchad-blue bg-tchad-blue/5 text-tchad-blue' : 'border-gray-200 text-gray-500 hover:border-gray-300'
-              }`}
-              title={sortOrder === 'az' ? 'Tri A→Z' : sortOrder === 'za' ? 'Tri Z→A' : 'Tri par défaut'}
-            >
-              {sortOrder === 'za' ? <ArrowDownZA size={16} /> : <ArrowUpAZ size={16} />}
-              {sortOrder === 'az' ? 'A→Z' : sortOrder === 'za' ? 'Z→A' : 'Trier'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSortOrder(sortOrder === 'az' ? 'za' : sortOrder === 'za' ? 'default' : 'az')}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  sortOrder !== 'default' ? 'border-tchad-blue bg-tchad-blue/5 text-tchad-blue' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                {sortOrder === 'za' ? <ArrowDownZA size={16} /> : <ArrowUpAZ size={16} />}
+                {sortOrder === 'az' ? 'A→Z' : sortOrder === 'za' ? 'Z→A' : 'Trier'}
+              </button>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  showFilters || activeFilterCount > 0 ? 'border-tchad-blue bg-tchad-blue/5 text-tchad-blue' : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                <Filter size={16} />
+                Filtres
+                {activeFilterCount > 0 && (
+                  <span className="bg-tchad-blue text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{activeFilterCount}</span>
+                )}
+                <ChevronDown size={14} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Advanced filters */}
+        {showFilters && (
+          <div className="card mb-4 border-2 border-tchad-blue/10 bg-tchad-blue/[0.02]">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
+                <Filter size={14} />
+                Filtres avancés
+              </h3>
+              {activeFilterCount > 0 && (
+                <button onClick={clearFilters} className="text-xs text-tchad-blue hover:underline flex items-center gap-1">
+                  <X size={12} /> Réinitialiser
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Situation familiale</label>
+                <select value={situationFamiliale} onChange={(e) => { setSituationFamiliale(e.target.value); setPage(1) }} className="select-field text-sm">
+                  <option value="">Toutes</option>
+                  <option value="Marié(e)">Marié(e)</option>
+                  <option value="Célibataire">Célibataire</option>
+                  <option value="Divorcé(e)">Divorcé(e)</option>
+                  <option value="Veuf/Veuve">Veuf/Veuve</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Famille au Gabon</label>
+                <select value={familleAuGabon} onChange={(e) => { setFamilleAuGabon(e.target.value); setPage(1) }} className="select-field text-sm">
+                  <option value="">Tous</option>
+                  <option value="true">Oui</option>
+                  <option value="false">Non</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Carte de colonie</label>
+                <select value={carteColonie} onChange={(e) => { setCarteColonie(e.target.value); setPage(1) }} className="select-field text-sm">
+                  <option value="">Toutes</option>
+                  <option value="Ok">Ok</option>
+                  <option value="Encours">En cours</option>
+                  <option value="Non">Non</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Régularité</label>
+                <select value={statut} onChange={(e) => { setStatut(e.target.value); setPage(1) }} className="select-field text-sm">
+                  <option value="">Tous</option>
+                  <option value="Régulier">Régulier</option>
+                  <option value="Irrégulier">Irrégulier</option>
+                  <option value="En cours">En cours</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Quartier</label>
+                <select value={quartier} onChange={(e) => { setQuartier(e.target.value); setPage(1) }} className="select-field text-sm">
+                  <option value="">Tous</option>
+                  {availableQuartiers.map((q) => (
+                    <option key={q} value={q}>{q}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Table */}
         <div className="card overflow-hidden p-0">
@@ -241,7 +353,7 @@ function CitoyensContent() {
                             <span title="A contribué"><DollarSign size={15} className="text-green-500" /></span>
                           )}
                         </div>
-                        <span className="text-xs text-gray-400">{c.sexe === 'M' ? 'Homme' : 'Femme'}</span>
+                        <span className="text-xs text-gray-400">{c.sexe === 'M' ? 'Homme' : 'Femme'}{c.quartier ? ` — ${c.quartier}` : ''}</span>
                       </td>
                       <td className="p-4 text-gray-600">{c.ville}</td>
                       <td className="p-4 text-gray-600">{c.telephone || '—'}</td>
@@ -250,27 +362,15 @@ function CitoyensContent() {
                       <td className="p-4">{statusBadge(c.situationRegularite)}</td>
                       <td className="p-4">
                         <div className="flex items-center gap-1">
-                          <Link
-                            href={`/citoyens/${c.id}`}
-                            className="p-2 hover:bg-tchad-blue/10 rounded-lg text-tchad-blue transition-colors"
-                            title="Voir"
-                          >
+                          <Link href={`/citoyens/${c.id}`} className="p-2 hover:bg-tchad-blue/10 rounded-lg text-tchad-blue transition-colors" title="Voir">
                             <Eye size={16} />
                           </Link>
                           {isAdmin && (
                             <>
-                              <Link
-                                href={`/citoyens/${c.id}?edit=true`}
-                                className="p-2 hover:bg-tchad-yellow/20 rounded-lg text-tchad-blue-dark transition-colors"
-                                title="Modifier"
-                              >
+                              <Link href={`/citoyens/${c.id}?edit=true`} className="p-2 hover:bg-tchad-yellow/20 rounded-lg text-tchad-blue-dark transition-colors" title="Modifier">
                                 <Edit size={16} />
                               </Link>
-                              <button
-                                onClick={() => handleDelete(c.id)}
-                                className="p-2 hover:bg-red-50 rounded-lg text-tchad-red transition-colors"
-                                title="Supprimer"
-                              >
+                              <button onClick={() => handleDelete(c.id)} className="p-2 hover:bg-red-50 rounded-lg text-tchad-red transition-colors" title="Supprimer">
                                 <Trash2 size={16} />
                               </button>
                             </>
