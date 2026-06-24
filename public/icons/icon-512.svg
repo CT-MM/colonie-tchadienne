@@ -1,5 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <circle cx="256" cy="256" r="256" fill="#002664"/>
-  <text x="256" y="230" text-anchor="middle" dominant-baseline="middle" fill="#FECB00" font-size="179" font-weight="bold" font-family="Arial,sans-serif">CT</text>
-  <text x="256" y="370" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="77" font-weight="bold" font-family="Arial,sans-serif">MM</text>
+  <defs>
+    <clipPath id="circle">
+      <circle cx="256" cy="256" r="256"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#circle)">
+    <rect x="0" y="0" width="171" height="512" fill="#002664"/>
+    <rect x="171" y="0" width="170" height="512" fill="#FECB00"/>
+    <rect x="341" y="0" width="171" height="512" fill="#C60C30"/>
+  </g>
 </svg>
