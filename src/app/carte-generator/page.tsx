@@ -253,43 +253,121 @@ function CarteGeneratorContent() {
     localStorage.removeItem(LAYOUT_KEY)
   }
 
-  const handleExport = async () => {
-    if (!carteRef.current || !selected) return
-    setExporting(true)
-
-    const clone = carteRef.current.cloneNode(true) as HTMLElement
-    clone.style.position = 'fixed'
-    clone.style.top = '0'
-    clone.style.left = '0'
-    clone.style.width = `${CARTE_W}px`
-    clone.style.height = `${CARTE_H}px`
-    clone.style.zIndex = '-9999'
-    clone.style.opacity = '1'
-    clone.style.overflow = 'hidden'
-    document.body.appendChild(clone)
-
-    await new Promise((r) => setTimeout(r, 500))
-
-    const html2canvas = (await import('html2canvas')).default
-    const canvas = await html2canvas(clone, {
-      scale: 5,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      width: CARTE_W,
-      height: CARTE_H,
-      scrollX: 0,
-      scrollY: 0,
-      x: 0,
-      y: 0,
+  const loadImage = (src: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => resolve(img)
+      img.onerror = reject
+      img.src = src
     })
 
-    document.body.removeChild(clone)
+  const handleExport = async () => {
+    if (!selected) return
+    setExporting(true)
 
-    const link = document.createElement('a')
-    link.download = `carte-colonie-${selected.nom}-${selected.prenom}.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
+    try {
+      const scale = 4
+      const w = CARTE_W * scale
+      const h = CARTE_H * scale
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')!
+      ctx.scale(scale, scale)
+
+      // Draw template background
+      try {
+        const templateImg = await loadImage('/carte-template.png')
+        ctx.drawImage(templateImg, 0, 0, CARTE_W, CARTE_H)
+      } catch {
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, CARTE_W, CARTE_H)
+      }
+
+      // Draw photo
+      const px = (CARTE_W * parseFloat(layout.photo.left)) / 100
+      const py = (CARTE_H * parseFloat(layout.photo.top)) / 100
+      const pw = (CARTE_W * parseFloat(layout.photo.width)) / 100
+      const ph = (CARTE_H * parseFloat(layout.photo.height)) / 100
+      if (selected.photo) {
+        try {
+          const photoImg = await loadImage(selected.photo)
+          ctx.save()
+          ctx.beginPath()
+          const r = 6
+          ctx.moveTo(px + r, py)
+          ctx.lineTo(px + pw - r, py)
+          ctx.quadraticCurveTo(px + pw, py, px + pw, py + r)
+          ctx.lineTo(px + pw, py + ph - r)
+          ctx.quadraticCurveTo(px + pw, py + ph, px + pw - r, py + ph)
+          ctx.lineTo(px + r, py + ph)
+          ctx.quadraticCurveTo(px, py + ph, px, py + ph - r)
+          ctx.lineTo(px, py + r)
+          ctx.quadraticCurveTo(px, py, px + r, py)
+          ctx.clip()
+          // Cover fit
+          const imgRatio = photoImg.width / photoImg.height
+          const boxRatio = pw / ph
+          let sx = 0, sy = 0, sw = photoImg.width, sh = photoImg.height
+          if (imgRatio > boxRatio) {
+            sw = photoImg.height * boxRatio
+            sx = (photoImg.width - sw) / 2
+          } else {
+            sh = photoImg.width / boxRatio
+            sy = (photoImg.height - sh) / 2
+          }
+          ctx.drawImage(photoImg, sx, sy, sw, sh, px, py, pw, ph)
+          ctx.restore()
+        } catch {
+          ctx.fillStyle = '#f9fafb'
+          ctx.fillRect(px, py, pw, ph)
+        }
+      } else {
+        ctx.fillStyle = '#f9fafb'
+        ctx.fillRect(px, py, pw, ph)
+      }
+
+      // Draw card number
+      const numX = (CARTE_W * parseFloat(layout.numero.left)) / 100 + (CARTE_W * parseFloat(layout.numero.width)) / 200
+      const numY = (CARTE_H * parseFloat(layout.numero.top)) / 100
+      ctx.fillStyle = '#C60C30'
+      ctx.font = `800 ${layout.numero.fontSize}px Inter, Arial, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+      ctx.fillText(`N° ${generateCardNumber(selected)}`, numX, numY)
+
+      // Draw text fields
+      const drawField = (f: FieldPos, text: string) => {
+        if (!text) return
+        const fx = (CARTE_W * parseFloat(f.left)) / 100
+        const fy = (CARTE_H * parseFloat(f.top)) / 100
+        const fw = (CARTE_W * parseFloat(f.width)) / 100
+        const fh = (CARTE_H * parseFloat(f.height)) / 100
+        ctx.fillStyle = '#111111'
+        ctx.font = `700 ${f.fontSize}px Inter, Arial, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(text, fx + fw / 2, fy + fh / 2, fw)
+      }
+
+      drawField(layout.nom, selected.nom?.toUpperCase() || '')
+      drawField(layout.prenom, selected.prenom?.toUpperCase() || '')
+      drawField(layout.dateNaissance, selected.dateNaissance ? new Date(selected.dateNaissance).toLocaleDateString('fr-FR') : '')
+      drawField(layout.lieuNaissance, selected.lieuNaissance?.toUpperCase() || '')
+      drawField(layout.sexe, selected.sexe === 'M' ? 'MASCULIN' : selected.sexe === 'F' ? 'FÉMININ' : '')
+      drawField(layout.ville, selected.ville?.toUpperCase() || '')
+      drawField(layout.profession, selected.profession?.toUpperCase() || '')
+      drawField(layout.telephone, selected.telephone || '')
+      drawField(layout.validite, `31/12/${new Date().getFullYear()}`)
+
+      const link = document.createElement('a')
+      link.download = `carte-colonie-${selected.nom}-${selected.prenom}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } catch (err) {
+      console.error('Export error:', err)
+    }
     setExporting(false)
   }
 

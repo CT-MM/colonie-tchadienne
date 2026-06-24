@@ -17,8 +17,9 @@ import {
   Calendar,
   BookOpen,
   KeyRound,
+  Settings,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const navItems = [
   { href: '/', label: 'Tableau de bord', icon: LayoutDashboard },
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/charte', label: 'Charte', icon: BookOpen },
   { href: '/carte-generator', label: 'Générateur de carte', icon: CreditCard, adminOnly: true },
   { href: '/gestion-comptes', label: 'Gestion des comptes', icon: KeyRound, adminOnly: true },
+  { href: '/parametres', label: 'Paramètres', icon: Settings, adminOnly: true },
 ]
 
 export default function Sidebar() {
@@ -37,6 +39,14 @@ export default function Sidebar() {
   const { data: session } = useSession()
   const isAdmin = (session?.user as any)?.role === 'admin'
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [logo, setLogo] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/settings/logo')
+      .then(r => r.json())
+      .then(d => { if (d.logo) setLogo(d.logo) })
+      .catch(() => {})
+  }, [])
 
   return (
     <>
@@ -65,8 +75,12 @@ export default function Sidebar() {
         {/* Header */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-tchad-yellow rounded-full flex items-center justify-center text-tchad-blue font-bold text-lg">
-              CT
+            <div className="w-12 h-12 bg-tchad-yellow rounded-full flex items-center justify-center text-tchad-blue font-bold text-lg overflow-hidden">
+              {logo ? (
+                <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                'CT'
+              )}
             </div>
             <div>
               <h1 className="font-bold text-lg leading-tight">Colonie Tchadienne</h1>

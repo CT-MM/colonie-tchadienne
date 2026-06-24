@@ -104,6 +104,11 @@ export async function POST(req: NextRequest) {
       "updatedAt" DATETIME NOT NULL
     )`)
 
+    await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "Setting" (
+      "key" TEXT NOT NULL PRIMARY KEY,
+      "value" TEXT NOT NULL
+    )`)
+
     return NextResponse.json({ ok: true, message: 'Tables créées avec succès' })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

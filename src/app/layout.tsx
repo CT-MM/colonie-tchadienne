@@ -15,8 +15,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Colonie Tchad" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+        <link rel="icon" href="/api/settings/pwa-icon" />
+        <link rel="apple-touch-icon" href="/api/settings/pwa-icon" />
       </head>
       <body className="bg-gray-50 min-h-screen">
         <SessionProvider>
