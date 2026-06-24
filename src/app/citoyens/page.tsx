@@ -178,13 +178,19 @@ function CitoyensContent() {
   tbody td { padding:8px 12px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
   tbody tr:hover { background:#f8fafc; }
   .footer { text-align:center; margin-top:16px; font-size:10px; color:#9ca3af; border-top:1px solid #e5e7eb; padding-top:8px; }
-  .flag { display:inline-flex; gap:0; margin-right:12px; }
-  .flag div { width:8px; height:30px; }
+  .logo { width:48px; height:48px; margin-right:14px; flex-shrink:0; }
 </style>
 </head><body>
 <div class="header">
   <div style="display:flex;align-items:center">
-    <div class="flag"><div style="background:#002664;border-radius:3px 0 0 3px"></div><div style="background:#FECB00"></div><div style="background:#C60C30;border-radius:0 3px 3px 0"></div></div>
+    <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs><clipPath id="c"><circle cx="50" cy="50" r="50"/></clipPath></defs>
+      <g clip-path="url(#c)">
+        <rect x="0" y="0" width="34" height="100" fill="#002664"/>
+        <rect x="34" y="0" width="32" height="100" fill="#FECB00"/>
+        <rect x="66" y="0" width="34" height="100" fill="#C60C30"/>
+      </g>
+    </svg>
     <div>
       <h1>Colonie Tchadienne — Moanda & Mounana</h1>
       <div class="sub">Liste des membres au ${today}</div>
