@@ -62,9 +62,10 @@ function generateCardNumber(selected: any): string {
   return 'CT-MM-000'
 }
 
-function getValiditeDate(): string {
-  const now = new Date()
-  const end = new Date(now.getFullYear(), 11, 31)
+function getValiditeDate(createdAt?: string): string {
+  const base = createdAt ? new Date(createdAt) : new Date()
+  const end = new Date(base)
+  end.setFullYear(end.getFullYear() + 2)
   return end.toLocaleDateString('fr-FR')
 }
 
@@ -150,7 +151,7 @@ function CarteContent({ selected, layout }: { selected: any; layout: CardLayout 
       <div style={fieldStyle(layout.profession)}>{selected?.profession?.toUpperCase() || ''}</div>
       <div style={fieldStyle(layout.telephone)}>{selected?.telephone || ''}</div>
       <div style={fieldStyle(layout.validite)}>
-        {selected ? `31/12/${new Date().getFullYear()}` : ''}
+        {selected ? getValiditeDate(selected.createdAt) : ''}
       </div>
     </>
   )
@@ -383,7 +384,7 @@ function CarteGeneratorContent() {
       drawField(layout.ville, selected.ville?.toUpperCase() || '')
       drawField(layout.profession, selected.profession?.toUpperCase() || '')
       drawField(layout.telephone, selected.telephone || '')
-      drawField(layout.validite, `31/12/${new Date().getFullYear()}`)
+      drawField(layout.validite, getValiditeDate(selected.createdAt))
 
       const link = document.createElement('a')
       link.download = `carte-colonie-${selected.nom}-${selected.prenom}.png`
