@@ -15,7 +15,8 @@ const CATEGORIES = [
 const FONCTIONS: Record<string, string[]> = {
   executif: [
     'Président', 'Vice-Président', 'Secrétaire Général', 'Secrétaire Général Adjoint',
-    'Trésorier', 'Trésorier Adjoint', 'Commissaire aux comptes', 'Chargé de communication', 'Membre',
+    'Trésorier', 'Trésorier Adjoint', 'Commissaire aux comptes',
+    'Chargé de communication', 'Chargé du service informatique', 'Membre',
   ],
   religieux: ['Président', 'Vice-Président', 'Adjoint 1', 'Adjoint 2', 'Secrétaire Général'],
   conseiller: [

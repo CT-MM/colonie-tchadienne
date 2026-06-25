@@ -8,7 +8,9 @@ const LOGO_KEY = 'platform_logo'
 export async function GET() {
   try {
     const setting = await prisma.setting.findUnique({ where: { key: LOGO_KEY } })
-    return NextResponse.json({ logo: setting?.value || null })
+    const res = NextResponse.json({ logo: setting?.value || null })
+    res.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600')
+    return res
   } catch {
     return NextResponse.json({ logo: null })
   }

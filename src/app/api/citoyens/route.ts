@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     prisma.citoyen.findMany({
       where,
       include: {
-        contributions: { select: { montant: true } },
+        _count: { select: { contributions: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
@@ -47,14 +47,12 @@ export async function GET(req: NextRequest) {
     prisma.citoyen.count({ where }),
   ])
 
-  const citoyensWithContrib = citoyens.map((c) => ({
+  const citoyensData = citoyens.map(({ _count, ...c }) => ({
     ...c,
-    totalContributions: c.contributions.reduce((s, x) => s + x.montant, 0),
-    aContribue: c.contributions.length > 0,
-    contributions: undefined,
+    aContribue: _count.contributions > 0,
   }))
 
-  return NextResponse.json({ citoyens: citoyensWithContrib, total, pages: Math.ceil(total / limit) })
+  return NextResponse.json({ citoyens: citoyensData, total, pages: Math.ceil(total / limit) })
 }
 
 export async function POST(req: NextRequest) {

@@ -39,14 +39,23 @@ export default function Sidebar() {
   const { data: session } = useSession()
   const isAdmin = (session?.user as any)?.role === 'admin'
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [logo, setLogo] = useState<string | null>(null)
+  const [logo, setLogo] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') return sessionStorage.getItem('platform-logo') || null
+    return null
+  })
 
   useEffect(() => {
+    if (logo) return
     fetch('/api/settings/logo')
       .then(r => r.json())
-      .then(d => { if (d.logo) setLogo(d.logo) })
+      .then(d => {
+        if (d.logo) {
+          setLogo(d.logo)
+          sessionStorage.setItem('platform-logo', d.logo)
+        }
+      })
       .catch(() => {})
-  }, [])
+  }, [logo])
 
   return (
     <>
