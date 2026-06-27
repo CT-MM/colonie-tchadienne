@@ -201,7 +201,7 @@ function CitoyensContent() {
       </g>
     </svg>
     <div>
-      <h1>Colonie Tchadienne — Moanda & Mounana</h1>
+      <h1>Colonie Tchadienne — Lebombi-Leyou</h1>
       <div class="sub">Liste des membres au ${today}</div>
     </div>
   </div>
@@ -224,7 +224,7 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
   </thead>
   <tbody>${rows}</tbody>
 </table>
-<div class="footer">Colonie Tchadienne de Moanda & Mounana — Document généré le ${today}</div>
+<div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Document généré le ${today}</div>
 <script>
   window.onload = function() { setTimeout(function() { window.print(); }, 500); }
 </script>
@@ -261,7 +261,7 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
   const sendGroupLink = (tel: string, prenom: string) => {
     if (!groupLink || !tel) return
     const phone = formatPhone(tel)
-    const msg = `Bonjour ${prenom}, bienvenue dans la communauté tchadienne de Moanda & Mounana ! Rejoignez notre groupe ici : ${groupLink}`
+    const msg = `Bonjour ${prenom}, bienvenue dans la Colonie Tchadienne de la Lebombi-Leyou ! Rejoignez notre groupe ici : ${groupLink}`
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 

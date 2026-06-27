@@ -94,7 +94,7 @@ export default function Dashboard() {
       html += `<tr><td>${i + 1}</td><td>${c.nom}</td><td>${c.prenom}</td><td>${c.sexe === 'M' ? 'Homme' : 'Femme'}</td><td>${c.ville}</td><td>${c.telephone || '-'}</td><td>${c.profession || '-'}</td><td>${c.carteSejour}</td><td>${c.passeport}</td></tr>`
     })
 
-    html += `</table><div class="footer">Colonie Tchadienne de Moanda & Mounana</div></body></html>`
+    html += `</table><div class="footer">Colonie Tchadienne de la Lebombi-Leyou</div></body></html>`
 
     const w = window.open('', '_blank')
     if (w) { w.document.write(html); w.document.close() }

@@ -187,7 +187,7 @@ export default function TresoreriePage() {
 
     const solde = contribs.total - deps.total
     html += `<div class="solde ${solde >= 0 ? 'positif' : 'negatif'}">SOLDE : ${formatMontant(solde)}</div>`
-    html += `<div class="footer">Colonie Tchadienne de Moanda & Mounana — Rapport généré automatiquement</div></body></html>`
+    html += `<div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Rapport généré automatiquement</div></body></html>`
 
     const w = window.open('', '_blank')
     if (w) {

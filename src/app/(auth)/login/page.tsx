@@ -50,7 +50,7 @@ export default function LoginPage() {
             <span className="text-tchad-blue font-black text-2xl">CT</span>
           </div>
           <h1 className="text-3xl font-bold text-white">Colonie Tchadienne</h1>
-          <p className="text-white/60 mt-1">Moanda & Mounana — Gabon</p>
+          <p className="text-white/60 mt-1">Lebombi-Leyou — Gabon</p>
           {/* Flag stripe */}
           <div className="mt-4 flex justify-center">
             <div className="h-1 w-32 rounded-full overflow-hidden flex">

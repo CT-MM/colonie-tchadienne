@@ -93,7 +93,7 @@ export default function Sidebar() {
             </div>
             <div>
               <h1 className="font-bold text-lg leading-tight">Colonie Tchadienne</h1>
-              <p className="text-xs text-white/60">Moanda & Mounana</p>
+              <p className="text-xs text-white/60">Lebombi-Leyou</p>
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2">

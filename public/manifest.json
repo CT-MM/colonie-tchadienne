@@ -1,7 +1,7 @@
 {
-  "name": "Colonie Tchadienne - Moanda & Mounana",
+  "name": "Colonie Tchadienne - Lebombi-Leyou",
   "short_name": "Colonie Tchad",
-  "description": "Application de gestion de la Colonie Tchadienne de Moanda et Mounana",
+  "description": "Application de gestion de la Colonie Tchadienne de la Lebombi-Leyou",
   "start_url": "/portail",
   "display": "standalone",
   "background_color": "#002664",

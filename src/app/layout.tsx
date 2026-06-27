@@ -8,8 +8,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
       <head>
-        <title>Colonie Tchadienne - Moanda & Mounana</title>
-        <meta name="description" content="Base de données de la colonie tchadienne de Moanda et Mounana au Gabon" />
+        <title>Colonie Tchadienne - Lebombi-Leyou</title>
+        <meta name="description" content="Base de données de la Colonie Tchadienne de la Lebombi-Leyou au Gabon" />
         <meta name="theme-color" content="#002664" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
