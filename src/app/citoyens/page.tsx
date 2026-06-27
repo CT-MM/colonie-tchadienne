@@ -8,7 +8,7 @@ import Link from 'next/link'
 import {
   Search, Filter, Eye, Edit, Trash2, ChevronLeft, ChevronRight,
   UserPlus, CheckCircle, Clock, XCircle, DollarSign,
-  ArrowUpAZ, ArrowDownZA, Download, ChevronDown, X, FileText, Send, Copy, CheckSquare, Square,
+  ArrowUpAZ, ArrowDownZA, Download, ChevronDown, X, FileText, Send, Copy, SkipForward,
 } from 'lucide-react'
 
 interface Citoyen {
@@ -54,12 +54,12 @@ function CitoyensContent() {
   const [exporting, setExporting] = useState(false)
   const [validatingId, setValidatingId] = useState<string | null>(null)
   const [groupLink, setGroupLink] = useState('')
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showBroadcast, setShowBroadcast] = useState(false)
-  const [allMembers, setAllMembers] = useState<Citoyen[]>([])
-  const [loadingAll, setLoadingAll] = useState(false)
+  const [broadcastMembers, setBroadcastMembers] = useState<Citoyen[]>([])
+  const [loadingBroadcast, setLoadingBroadcast] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [broadcastSending, setBroadcastSending] = useState<number>(-1)
+  const [broadcastIndex, setBroadcastIndex] = useState(-1)
+  const [broadcastSent, setBroadcastSent] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -265,58 +265,42 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  const toggleSelectPage = () => {
-    const pageIds = citoyens.filter(c => c.telephone).map(c => c.id)
-    const allSelected = pageIds.every(id => selectedIds.has(id))
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      pageIds.forEach(id => allSelected ? next.delete(id) : next.add(id))
-      return next
-    })
-  }
-
-  const selectAll = async () => {
-    if (allMembers.length > 0) {
-      const ids = allMembers.filter(c => c.telephone).map(c => c.id)
-      setSelectedIds(new Set(ids))
-      return
-    }
-    setLoadingAll(true)
+  const openBroadcast = async () => {
+    setShowBroadcast(true)
+    setBroadcastIndex(-1)
+    setBroadcastSent(new Set())
+    setCopied(false)
+    if (broadcastMembers.length > 0) return
+    setLoadingBroadcast(true)
     const res = await fetch('/api/citoyens?limit=5000')
     const data = await res.json()
-    setAllMembers(data.citoyens || [])
-    const ids = (data.citoyens || []).filter((c: Citoyen) => c.telephone).map((c: Citoyen) => c.id)
-    setSelectedIds(new Set(ids))
-    setLoadingAll(false)
+    setBroadcastMembers((data.citoyens || []).filter((c: Citoyen) => c.telephone))
+    setLoadingBroadcast(false)
   }
 
-  const getSelectedMembers = (): Citoyen[] => {
-    const source = allMembers.length > 0 ? allMembers : citoyens
-    return source.filter(c => selectedIds.has(c.id) && c.telephone)
-  }
-
-  const copyNumbers = () => {
-    const members = getSelectedMembers()
-    const numbers = members.map(c => formatPhone(c.telephone!)).join('\n')
+  const copyAllNumbers = () => {
+    const numbers = broadcastMembers.map(c => '+' + formatPhone(c.telephone!)).join('\n')
     navigator.clipboard.writeText(numbers)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(() => setCopied(false), 3000)
   }
 
-  const openBroadcast = () => {
-    const members = getSelectedMembers()
-    if (members.length === 0) return
-    setShowBroadcast(true)
-    setBroadcastSending(-1)
+  const startSequentialSend = () => {
+    setBroadcastIndex(0)
+    const c = broadcastMembers[0]
+    if (c) sendGroupLink(c.telephone!, c.prenom)
+  }
+
+  const sendNext = () => {
+    setBroadcastSent(prev => new Set(prev).add(broadcastIndex))
+    const next = broadcastIndex + 1
+    if (next >= broadcastMembers.length) {
+      setBroadcastIndex(-2)
+      return
+    }
+    setBroadcastIndex(next)
+    const c = broadcastMembers[next]
+    sendGroupLink(c.telephone!, c.prenom)
   }
 
   const clearFilters = () => {
@@ -369,6 +353,16 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
             <p className="text-gray-500">{total} membres enregistrés</p>
           </div>
           <div className="flex gap-2 mt-3 sm:mt-0 flex-wrap">
+            {isAdmin && groupLink && (
+              <button
+                onClick={openBroadcast}
+                disabled={loadingBroadcast}
+                className="flex items-center gap-2 text-sm px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                <Send size={16} />
+                {loadingBroadcast ? 'Chargement...' : 'Diffuser le lien'}
+              </button>
+            )}
             <button
               onClick={handleExportPDF}
               disabled={exporting}
@@ -503,59 +497,12 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
           </div>
         )}
 
-        {/* Selection bar */}
-        {isAdmin && groupLink && (
-          <div className="card mb-4 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <button onClick={toggleSelectPage} className="text-sm text-tchad-blue hover:underline">
-                {citoyens.filter(c => c.telephone).every(c => selectedIds.has(c.id)) && citoyens.filter(c => c.telephone).length > 0
-                  ? 'Désélectionner la page'
-                  : 'Sélectionner la page'}
-              </button>
-              <span className="text-gray-300">|</span>
-              <button onClick={selectAll} disabled={loadingAll} className="text-sm text-tchad-blue hover:underline disabled:opacity-50">
-                {loadingAll ? 'Chargement...' : 'Sélectionner tous les membres'}
-              </button>
-              {selectedIds.size > 0 && (
-                <>
-                  <span className="text-gray-300">|</span>
-                  <button onClick={() => setSelectedIds(new Set())} className="text-sm text-red-500 hover:underline">
-                    Tout désélectionner
-                  </button>
-                </>
-              )}
-            </div>
-            {selectedIds.size > 0 && (
-              <div className="flex items-center gap-2 ml-auto">
-                <span className="text-sm font-medium text-gray-600">
-                  {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
-                </span>
-                <button
-                  onClick={openBroadcast}
-                  className="btn-primary flex items-center gap-2 text-sm py-2"
-                >
-                  <Send size={15} />
-                  Envoyer le lien du groupe
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Table */}
         <div className="card overflow-hidden p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-tchad-blue/5 border-b border-gray-100">
-                  {isAdmin && groupLink && (
-                    <th className="p-4 w-10">
-                      <button onClick={toggleSelectPage} className="text-tchad-blue hover:text-tchad-blue-dark">
-                        {citoyens.filter(c => c.telephone).length > 0 && citoyens.filter(c => c.telephone).every(c => selectedIds.has(c.id))
-                          ? <CheckSquare size={18} /> : <Square size={18} />}
-                      </button>
-                    </th>
-                  )}
                   <th className="text-left p-4 font-semibold text-gray-700">Photo</th>
                   <th className="text-left p-4 font-semibold text-gray-700">Nom & Prénom</th>
                   <th className="text-left p-4 font-semibold text-gray-700">Ville</th>
@@ -570,7 +517,7 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                 {loading ? (
                   [...Array(5)].map((_, i) => (
                     <tr key={i} className="border-b border-gray-50">
-                      {[...Array(isAdmin && groupLink ? 9 : 8)].map((_, j) => (
+                      {[...Array(8)].map((_, j) => (
                         <td key={j} className="p-4">
                           <div className="h-4 bg-gray-200 rounded animate-pulse w-16" />
                         </td>
@@ -579,7 +526,7 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                   ))
                 ) : citoyens.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin && groupLink ? 9 : 8} className="p-8 text-center text-gray-400">
+                    <td colSpan={8} className="p-8 text-center text-gray-400">
                       Aucun membre trouvé
                     </td>
                   </tr>
@@ -589,18 +536,7 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                     if (sortOrder === 'za') return b.nom.localeCompare(a.nom)
                     return 0
                   }).map((c) => (
-                    <tr key={c.id} className={`border-b border-gray-50 transition-colors ${selectedIds.has(c.id) ? 'bg-tchad-blue/[0.03]' : 'hover:bg-gray-50/80'}`}>
-                      {isAdmin && groupLink && (
-                        <td className="p-4">
-                          {c.telephone ? (
-                            <button onClick={() => toggleSelect(c.id)} className="text-tchad-blue hover:text-tchad-blue-dark">
-                              {selectedIds.has(c.id) ? <CheckSquare size={18} /> : <Square size={18} />}
-                            </button>
-                          ) : (
-                            <span className="text-gray-200"><Square size={18} /></span>
-                          )}
-                        </td>
-                      )}
+                    <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
                       <td className="p-4">
                         <div className="w-10 h-10 bg-tchad-blue/10 rounded-full overflow-hidden flex items-center justify-center">
                           {c.photo ? (
@@ -702,81 +638,103 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
 
       {/* Broadcast modal */}
       {showBroadcast && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowBroadcast(false)}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => { if (broadcastIndex < 0) setShowBroadcast(false) }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <Send size={20} className="text-green-600" />
-                  Diffusion du lien
+                  Diffusion du lien du groupe
                 </h2>
-                <p className="text-sm text-gray-500">{getSelectedMembers().length} membre{getSelectedMembers().length > 1 ? 's' : ''} sélectionné{getSelectedMembers().length > 1 ? 's' : ''}</p>
+                <p className="text-sm text-gray-500">
+                  {loadingBroadcast ? 'Chargement des membres...' : `${broadcastMembers.length} membre${broadcastMembers.length > 1 ? 's' : ''} avec numéro de téléphone`}
+                </p>
               </div>
               <button onClick={() => setShowBroadcast(false)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto flex-1">
-              {/* Copy numbers */}
-              <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Option 1 : Liste de diffusion WhatsApp</h3>
-                <p className="text-xs text-gray-500 mb-3">
-                  Copiez les numéros, puis dans WhatsApp → Nouvelle diffusion → collez les numéros pour créer votre liste.
-                </p>
-                <button
-                  onClick={copyNumbers}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full justify-center ${
-                    copied ? 'bg-green-100 text-green-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {copied ? <><CheckCircle size={16} /> Numéros copiés !</> : <><Copy size={16} /> Copier les {getSelectedMembers().length} numéros</>}
-                </button>
+            {loadingBroadcast ? (
+              <div className="p-10 flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full" />
               </div>
-
-              {/* Send one by one */}
-              <div className="bg-green-50 rounded-xl p-4 mb-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Option 2 : Envoyer un par un</h3>
-                <p className="text-xs text-gray-500 mb-3">
-                  Cliquez sur un membre pour ouvrir WhatsApp avec le message pré-rempli.
-                </p>
+            ) : broadcastIndex === -2 ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle size={32} className="text-green-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Diffusion terminée !</h3>
+                <p className="text-sm text-gray-500 mb-4">{broadcastSent.size} message{broadcastSent.size > 1 ? 's' : ''} envoyé{broadcastSent.size > 1 ? 's' : ''} sur {broadcastMembers.length}</p>
+                <button onClick={() => setShowBroadcast(false)} className="btn-primary">Fermer</button>
               </div>
-
-              {/* Members list */}
-              <div className="space-y-1">
-                {getSelectedMembers().map((c, i) => (
-                  <div key={c.id} className={`flex items-center justify-between p-2.5 rounded-lg border transition-colors ${
-                    broadcastSending === i ? 'border-green-300 bg-green-50' : 'border-gray-100 hover:border-gray-200'
-                  }`}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 bg-tchad-blue/10 rounded-full flex items-center justify-center text-xs font-bold text-tchad-blue flex-shrink-0">
-                        {c.prenom[0]}{c.nom[0]}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{c.nom} {c.prenom}</p>
-                        <p className="text-xs text-gray-400">{c.telephone}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setBroadcastSending(i)
-                        sendGroupLink(c.telephone!, c.prenom)
-                      }}
-                      className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex-shrink-0"
-                      title="Envoyer via WhatsApp"
-                    >
-                      <Send size={14} />
-                    </button>
+            ) : broadcastIndex >= 0 ? (
+              <div className="p-5">
+                {/* Progress */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="font-medium text-gray-700">Envoi en cours</span>
+                    <span className="text-green-600 font-bold">{broadcastSent.size + 1} / {broadcastMembers.length}</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-green-600 h-2 rounded-full transition-all" style={{ width: `${((broadcastSent.size + 1) / broadcastMembers.length) * 100}%` }} />
+                  </div>
+                </div>
 
-            <div className="p-4 border-t border-gray-100 flex justify-end">
-              <button onClick={() => setShowBroadcast(false)} className="btn-secondary text-sm">
-                Fermer
-              </button>
-            </div>
+                {/* Current member */}
+                <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-4">
+                  <p className="text-xs text-green-600 font-medium mb-1">Membre actuel :</p>
+                  <p className="text-lg font-bold text-gray-900">{broadcastMembers[broadcastIndex]?.nom} {broadcastMembers[broadcastIndex]?.prenom}</p>
+                  <p className="text-sm text-gray-500">{broadcastMembers[broadcastIndex]?.telephone}</p>
+                </div>
+
+                <p className="text-xs text-gray-400 mb-4 text-center">
+                  WhatsApp s'est ouvert avec le message pré-rempli. Envoyez le message, puis revenez ici et cliquez sur « Suivant ».
+                </p>
+
+                <div className="flex gap-3">
+                  <button onClick={() => setShowBroadcast(false)} className="btn-secondary flex-1 text-sm">
+                    Arrêter
+                  </button>
+                  <button onClick={sendNext} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm">
+                    <SkipForward size={16} />
+                    {broadcastSent.size + 1 >= broadcastMembers.length ? 'Terminer' : 'Suivant'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-5">
+                {/* Option 1: Copy all numbers */}
+                <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Option 1 — Copier tous les numéros</h3>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Copiez les numéros, ouvrez WhatsApp → Nouvelle diffusion → ajoutez les contacts, puis envoyez votre message à tous en une seule fois.
+                  </p>
+                  <button
+                    onClick={copyAllNumbers}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full justify-center ${
+                      copied ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {copied ? <><CheckCircle size={16} /> {broadcastMembers.length} numéros copiés !</> : <><Copy size={16} /> Copier les {broadcastMembers.length} numéros</>}
+                  </button>
+                </div>
+
+                {/* Option 2: Sequential send */}
+                <div className="bg-green-50 rounded-xl p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-1">Option 2 — Envoi séquentiel</h3>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Envoie le message un par un via WhatsApp. Chaque membre s'ouvre dans WhatsApp, vous envoyez, puis cliquez « Suivant ».
+                  </p>
+                  <button
+                    onClick={startSequentialSend}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full justify-center bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Send size={16} /> Commencer l'envoi ({broadcastMembers.length} membres)
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
