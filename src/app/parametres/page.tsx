@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { Settings, Upload, Trash2, Check, X, Image } from 'lucide-react'
+import { Settings, Upload, Trash2, Check, X, Image, Link2, Save } from 'lucide-react'
 
 export default function ParametresPage() {
   const { data: session, status } = useSession()
@@ -16,6 +16,9 @@ export default function ParametresPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [groupLink, setGroupLink] = useState('')
+  const [groupLinkSaved, setGroupLinkSaved] = useState('')
+  const [savingLink, setSavingLink] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated' || (status === 'authenticated' && !isAdmin)) {
@@ -25,11 +28,14 @@ export default function ParametresPage() {
 
   useEffect(() => {
     if (status === 'authenticated' && isAdmin) {
-      fetch('/api/settings/logo')
-        .then(r => r.json())
-        .then(d => setLogo(d.logo || null))
-        .catch(() => {})
-        .finally(() => setLoading(false))
+      Promise.all([
+        fetch('/api/settings/logo').then(r => r.json()),
+        fetch('/api/settings/group-link').then(r => r.json()),
+      ]).then(([logoData, linkData]) => {
+        setLogo(logoData.logo || null)
+        setGroupLink(linkData.link || '')
+        setGroupLinkSaved(linkData.link || '')
+      }).catch(() => {}).finally(() => setLoading(false))
     }
   }, [status, isAdmin])
 
@@ -176,6 +182,62 @@ export default function ParametresPage() {
                 <p>• Cette image sera utilisée comme icône de l'application PWA</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Group link section */}
+        <div className="card max-w-2xl mt-6">
+          <h2 className="font-semibold text-gray-800 flex items-center gap-2 mb-4">
+            <Link2 size={18} className="text-tchad-blue" />
+            Lien du groupe communautaire
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Ce lien sera envoyé par WhatsApp à chaque nouveau membre et peut être envoyé en masse aux membres existants depuis la page Membres.
+          </p>
+
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={groupLink}
+              onChange={(e) => setGroupLink(e.target.value)}
+              placeholder="https://chat.whatsapp.com/... ou autre lien de groupe"
+              className="input-field flex-1"
+            />
+            <button
+              onClick={async () => {
+                setSavingLink(true)
+                const res = await fetch('/api/settings/group-link', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ link: groupLink }),
+                })
+                if (res.ok) {
+                  setGroupLinkSaved(groupLink)
+                  showMsg('success', groupLink ? 'Lien du groupe sauvegardé' : 'Lien du groupe supprimé')
+                } else {
+                  showMsg('error', 'Erreur lors de la sauvegarde')
+                }
+                setSavingLink(false)
+              }}
+              disabled={savingLink || groupLink === groupLinkSaved}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50"
+            >
+              <Save size={16} />
+              {savingLink ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+          </div>
+
+          {groupLinkSaved && (
+            <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700 flex items-center gap-2">
+              <Check size={16} />
+              Lien actif : <a href={groupLinkSaved} target="_blank" rel="noopener noreferrer" className="underline truncate">{groupLinkSaved}</a>
+            </div>
+          )}
+
+          <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 space-y-1 mt-3">
+            <p>• Collez le lien d'invitation de votre groupe WhatsApp, Telegram, ou autre</p>
+            <p>• Ce lien sera envoyé automatiquement aux nouveaux inscrits</p>
+            <p>• Vous pouvez aussi l'envoyer en masse depuis la liste des membres</p>
           </div>
         </div>
       </main>

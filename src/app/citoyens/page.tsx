@@ -8,7 +8,7 @@ import Link from 'next/link'
 import {
   Search, Filter, Eye, Edit, Trash2, ChevronLeft, ChevronRight,
   UserPlus, CheckCircle, Clock, XCircle, DollarSign,
-  ArrowUpAZ, ArrowDownZA, Download, ChevronDown, X, FileText,
+  ArrowUpAZ, ArrowDownZA, Download, ChevronDown, X, FileText, Send,
 } from 'lucide-react'
 
 interface Citoyen {
@@ -53,10 +53,12 @@ function CitoyensContent() {
   const [quartiers, setQuartiers] = useState<Record<string, string[]>>({})
   const [exporting, setExporting] = useState(false)
   const [validatingId, setValidatingId] = useState<string | null>(null)
+  const [groupLink, setGroupLink] = useState('')
 
   useEffect(() => {
     if (status === 'authenticated') {
       fetch('/api/citoyens/quartiers').then((r) => r.json()).then(setQuartiers)
+      fetch('/api/settings/group-link').then((r) => r.json()).then(d => setGroupLink(d.link || ''))
     }
   }, [status])
 
@@ -242,6 +244,30 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
     setValidatingId(null)
   }
 
+  const formatPhone = (tel: string) => {
+    let num = tel.replace(/[\s\-\.\(\)]/g, '')
+    if (num.startsWith('0')) num = '241' + num.slice(1)
+    if (!num.startsWith('+') && !num.startsWith('241')) num = '241' + num
+    num = num.replace('+', '')
+    return num
+  }
+
+  const sendGroupLink = (tel: string, prenom: string) => {
+    if (!groupLink || !tel) return
+    const phone = formatPhone(tel)
+    const msg = `Bonjour ${prenom}, bienvenue dans la communauté tchadienne de Moanda & Mounana ! Rejoignez notre groupe ici : ${groupLink}`
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
+  const sendGroupLinkBulk = () => {
+    const withPhone = citoyens.filter(c => c.telephone)
+    if (withPhone.length === 0) { alert('Aucun membre avec un numéro de téléphone sur cette page'); return }
+    if (!confirm(`Ouvrir WhatsApp pour ${withPhone.length} membre(s) de cette page ?\n\nChaque lien s'ouvrira dans un nouvel onglet.`)) return
+    withPhone.forEach((c, i) => {
+      setTimeout(() => sendGroupLink(c.telephone!, c.prenom), i * 800)
+    })
+  }
+
   const clearFilters = () => {
     setStatut('')
     setQuartier('')
@@ -292,6 +318,16 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
             <p className="text-gray-500">{total} membres enregistrés</p>
           </div>
           <div className="flex gap-2 mt-3 sm:mt-0 flex-wrap">
+            {isAdmin && groupLink && (
+              <button
+                onClick={sendGroupLinkBulk}
+                className="btn-secondary flex items-center gap-2 text-sm"
+                title="Envoyer le lien du groupe à tous les membres de cette page"
+              >
+                <Send size={16} />
+                Envoyer le lien
+              </button>
+            )}
             <button
               onClick={handleExportPDF}
               disabled={exporting}
@@ -510,6 +546,15 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                           <Link href={`/citoyens/${c.id}`} className="p-2 hover:bg-tchad-blue/10 rounded-lg text-tchad-blue transition-colors" title="Voir">
                             <Eye size={16} />
                           </Link>
+                          {isAdmin && groupLink && c.telephone && (
+                            <button
+                              onClick={() => sendGroupLink(c.telephone!, c.prenom)}
+                              className="p-2 hover:bg-green-50 rounded-lg text-green-600 transition-colors"
+                              title="Envoyer le lien du groupe"
+                            >
+                              <Send size={16} />
+                            </button>
+                          )}
                           {isAdmin && (
                             <>
                               <Link href={`/citoyens/${c.id}?edit=true`} className="p-2 hover:bg-tchad-yellow/20 rounded-lg text-tchad-blue-dark transition-colors" title="Modifier">
