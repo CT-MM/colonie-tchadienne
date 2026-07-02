@@ -4,7 +4,8 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { Users, Plus, Search, Trash2, User, X, Crown, Phone, MapPin, BookOpen, Scale, ChevronUp, ChevronDown } from 'lucide-react'
+import { Users, Plus, Search, Trash2, User, X, Crown, Phone, MapPin, BookOpen, Scale, ChevronUp, ChevronDown, Download, FileText, Sparkles, GitBranch } from 'lucide-react'
+import SmartSearch, { SmartFilter } from '@/components/SmartSearch'
 
 const CATEGORIES = [
   { value: 'executif', label: 'Bureau Exécutif', icon: Crown, color: 'tchad-blue' },
@@ -38,6 +39,65 @@ export default function BureauPage() {
   const [categorie, setCategorie] = useState('executif')
   const [fonction, setFonction] = useState('Membre')
   const [saving, setSaving] = useState(false)
+  const [showOrganigramme, setShowOrganigramme] = useState(false)
+  const [filterCat, setFilterCat] = useState<string | null>(null)
+
+  const exportBureauPDF = () => {
+    const allMembres = [...getMembresForCat('executif'), ...getMembresForCat('religieux'), ...getMembresForCat('conseiller')]
+    const target = filterCat ? allMembres.filter(m => (filterCat === 'executif' ? (!m.categorie || m.categorie === 'executif') : m.categorie === filterCat)) : allMembres
+    const catLabel = filterCat ? CATEGORIES.find(c => c.value === filterCat)?.label || 'Bureau' : 'Bureau complet'
+
+    const w = window.open('', '_blank')
+    if (!w) return
+    w.document.write(`<html><head><title>Liste ${catLabel}</title><style>
+      body{font-family:Arial,sans-serif;padding:30px;color:#1a1a1a}
+      h1{color:#002664;border-bottom:3px solid #FECB00;padding-bottom:8px}
+      table{width:100%;border-collapse:collapse;margin-top:16px}
+      th{background:#002664;color:white;padding:10px;text-align:left;font-size:13px}
+      td{padding:8px 10px;border-bottom:1px solid #eee;font-size:13px}
+      tr:nth-child(even){background:#f8f9fa}
+      .footer{margin-top:20px;text-align:center;color:#999;font-size:11px}
+    </style></head><body>
+      <h1>🇹🇩 ${catLabel} — Colonie Tchadienne de la Lebombi-Leyou</h1>
+      <p style="color:#666;font-size:13px">Généré le ${new Date().toLocaleDateString('fr-FR')} — ${target.length} membre${target.length > 1 ? 's' : ''}</p>
+      <table><thead><tr><th>N°</th><th>Nom & Prénom</th><th>Fonction</th><th>Téléphone</th><th>Ville</th></tr></thead><tbody>
+      ${target.map((m, i) => `<tr><td>${i + 1}</td><td>${m.citoyen.nom} ${m.citoyen.prenom}</td><td>${m.fonction}</td><td>${m.citoyen.telephone || '—'}</td><td>${m.citoyen.ville}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Document généré automatiquement</div>
+    </body></html>`)
+    w.document.close()
+    w.print()
+  }
+
+  const exportBureauCSV = () => {
+    const allMembres = [...getMembresForCat('executif'), ...getMembresForCat('religieux'), ...getMembresForCat('conseiller')]
+    const target = filterCat ? allMembres.filter(m => (filterCat === 'executif' ? (!m.categorie || m.categorie === 'executif') : m.categorie === filterCat)) : allMembres
+    const csv = 'Nom,Prénom,Fonction,Catégorie,Téléphone,Ville\n' +
+      target.map(m => `${m.citoyen.nom},${m.citoyen.prenom},${m.fonction},${CATEGORIES.find(c => c.value === (m.categorie || 'executif'))?.label || ''},${m.citoyen.telephone || ''},${m.citoyen.ville}`).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `bureau-colonie-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+  }
+
+  const bureauSmartFilters: SmartFilter[] = [
+    { label: 'Bureau exécutif complet', description: 'Afficher uniquement les membres du bureau exécutif', params: { cat: 'executif' } },
+    { label: 'Conseil religieux', description: 'Afficher uniquement les membres du conseil religieux', params: { cat: 'religieux' } },
+    { label: 'Conseillers', description: 'Afficher uniquement les conseillers', params: { cat: 'conseiller' } },
+    { label: 'Tous les membres du bureau', description: 'Afficher toutes les catégories', params: { cat: '' } },
+    { label: 'Organigramme', description: 'Afficher l\'organigramme hiérarchique du bureau', params: { view: 'organigramme' } },
+  ]
+
+  const handleSmartFilter = (params: Record<string, string>) => {
+    if (params.view === 'organigramme') {
+      setShowOrganigramme(true)
+      setFilterCat(null)
+    } else {
+      setFilterCat(params.cat || null)
+      setShowOrganigramme(false)
+    }
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -138,20 +198,70 @@ export default function BureauPage() {
             <h1 className="text-2xl font-bold text-gray-900">Bureau exécutif</h1>
             <p className="text-gray-500">Membres du bureau de la Colonie Tchadienne</p>
           </div>
-          {isAdmin && (
-            <button
-              onClick={() => { setCategorie('executif'); setFonction(FONCTIONS.executif[0]); setShowAdd(true) }}
-              className="btn-primary flex items-center gap-2"
-            >
-              <Plus size={18} />
-              Ajouter un membre
-            </button>
-          )}
+          <div className="flex gap-2 flex-wrap">
+            {isAdmin && (
+              <>
+                <SmartSearch
+                  filters={bureauSmartFilters}
+                  onApplyFilter={handleSmartFilter}
+                  onExportCSV={exportBureauCSV}
+                  onExportPDF={exportBureauPDF}
+                  placeholder="Ex: bureau exécutif, conseillers..."
+                />
+                <button
+                  onClick={() => setShowOrganigramme(!showOrganigramme)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+                    showOrganigramme ? 'border-purple-300 bg-purple-50 text-purple-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <GitBranch size={16} />
+                  Organigramme
+                </button>
+                <button onClick={exportBureauPDF} className="btn-secondary flex items-center gap-2 text-sm">
+                  <FileText size={16} /> PDF
+                </button>
+                <button onClick={exportBureauCSV} className="btn-secondary flex items-center gap-2 text-sm">
+                  <Download size={16} /> CSV
+                </button>
+                <button
+                  onClick={() => { setCategorie('executif'); setFonction(FONCTIONS.executif[0]); setShowAdd(true) }}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus size={18} />
+                  Ajouter
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
+        {/* Filter indicator */}
+        {filterCat && (
+          <div className="mb-4 flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2">
+            <Sparkles size={14} className="text-purple-500" />
+            <span className="text-sm text-purple-700 font-medium">
+              Filtre actif : {CATEGORIES.find(c => c.value === filterCat)?.label}
+            </span>
+            <button onClick={() => setFilterCat(null)} className="ml-auto text-purple-400 hover:text-purple-600">
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* Organigramme */}
+        {showOrganigramme && (
+          <div className="card mb-8 overflow-x-auto">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-6">
+              <GitBranch size={20} className="text-tchad-blue" />
+              Organigramme — Colonie Tchadienne de la Lebombi-Leyou
+            </h2>
+            <OrgChart executif={membresExecutif} religieux={membresReligieux} conseillers={membresConseiller} />
+          </div>
+        )}
+
         {/* Bureau Exécutif */}
-        <SectionHeader icon={Crown} title="Bureau Exécutif" count={membresExecutif.length} color="bg-[#002664]" isAdmin={isAdmin} onAdd={() => openAddForCategory('executif')} />
-        {membresExecutif.length === 0 ? (
+        {(!filterCat || filterCat === 'executif') && <SectionHeader icon={Crown} title="Bureau Exécutif" count={membresExecutif.length} color="bg-[#002664]" isAdmin={isAdmin} onAdd={() => openAddForCategory('executif')} />}
+        {(!filterCat || filterCat === 'executif') && (membresExecutif.length === 0 ? (
           <EmptyState isAdmin={isAdmin} onAdd={() => openAddForCategory('executif')} label="bureau exécutif" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
@@ -159,11 +269,11 @@ export default function BureauPage() {
               <MembreCard key={m.id} membre={m} index={i} total={membresExecutif.length} isFirst={i === 0} isAdmin={isAdmin} onDelete={handleDelete} onMove={(dir) => moveItem('executif', i, dir)} accentColor="tchad-blue" firstLabel="PRÉSIDENT" />
             ))}
           </div>
-        )}
+        ))}
 
         {/* Conseil Religieux */}
-        <SectionHeader icon={BookOpen} title="Conseil Religieux" count={membresReligieux.length} color="bg-emerald-600" isAdmin={isAdmin} onAdd={() => openAddForCategory('religieux')} />
-        {membresReligieux.length === 0 ? (
+        {(!filterCat || filterCat === 'religieux') && <SectionHeader icon={BookOpen} title="Conseil Religieux" count={membresReligieux.length} color="bg-emerald-600" isAdmin={isAdmin} onAdd={() => openAddForCategory('religieux')} />}
+        {(!filterCat || filterCat === 'religieux') && (membresReligieux.length === 0 ? (
           <EmptyState isAdmin={isAdmin} onAdd={() => openAddForCategory('religieux')} label="conseil religieux" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
@@ -171,11 +281,11 @@ export default function BureauPage() {
               <MembreCard key={m.id} membre={m} index={i} total={membresReligieux.length} isFirst={i === 0} isAdmin={isAdmin} onDelete={handleDelete} onMove={(dir) => moveItem('religieux', i, dir)} accentColor="emerald-600" firstLabel="IMAM" />
             ))}
           </div>
-        )}
+        ))}
 
         {/* Conseillers */}
-        <SectionHeader icon={Scale} title="Conseillers" count={membresConseiller.length} color="bg-amber-600" isAdmin={isAdmin} onAdd={() => openAddForCategory('conseiller')} />
-        {membresConseiller.length === 0 ? (
+        {(!filterCat || filterCat === 'conseiller') && <SectionHeader icon={Scale} title="Conseillers" count={membresConseiller.length} color="bg-amber-600" isAdmin={isAdmin} onAdd={() => openAddForCategory('conseiller')} />}
+        {(!filterCat || filterCat === 'conseiller') && (membresConseiller.length === 0 ? (
           <EmptyState isAdmin={isAdmin} onAdd={() => openAddForCategory('conseiller')} label="conseillers" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
@@ -183,7 +293,7 @@ export default function BureauPage() {
               <MembreCard key={m.id} membre={m} index={i} total={membresConseiller.length} isFirst={i === 0} isAdmin={isAdmin} onDelete={handleDelete} onMove={(dir) => moveItem('conseiller', i, dir)} accentColor="amber-600" firstLabel="CONSEILLER PRINCIPAL" />
             ))}
           </div>
-        )}
+        ))}
       </main>
 
       {/* Modal ajout membre */}
@@ -348,6 +458,95 @@ function MembreCard({ membre: m, index, total, isFirst, isAdmin, onDelete, onMov
             <button onClick={() => onDelete(m.id)} className="p-1 hover:bg-red-50 rounded text-red-400 hover:text-red-600 mt-1" title="Retirer">
               <Trash2 size={14} />
             </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function OrgChart({ executif, religieux, conseillers }: { executif: any[]; religieux: any[]; conseillers: any[] }) {
+  const OrgNode = ({ name, role, color, highlight }: { name: string; role: string; color: string; highlight?: boolean }) => (
+    <div className={`inline-flex flex-col items-center px-4 py-3 rounded-xl border-2 ${highlight ? 'border-[#FECB00] bg-[#FECB00]/5' : `border-${color}/20 bg-white`} shadow-sm min-w-[140px]`}>
+      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{role}</span>
+      <span className="text-sm font-semibold text-gray-900 mt-0.5 text-center">{name}</span>
+    </div>
+  )
+
+  const president = executif[0]
+  const vp = executif.find(m => m.fonction === 'Vice-Président')
+  const sg = executif.find(m => m.fonction === 'Secrétaire Général')
+  const tresorier = executif.find(m => m.fonction === 'Trésorier')
+  const others = executif.filter(m => m !== president && m !== vp && m !== sg && m !== tresorier)
+
+  const imamPrincipal = religieux[0]
+  const conseillerPrincipal = conseillers[0]
+
+  if (executif.length === 0 && religieux.length === 0 && conseillers.length === 0) {
+    return <p className="text-center text-gray-400 py-8">Ajoutez des membres au bureau pour voir l'organigramme</p>
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-6 py-4">
+      {/* President */}
+      {president && (
+        <>
+          <OrgNode name={`${president.citoyen.nom} ${president.citoyen.prenom}`} role="Président" color="[#002664]" highlight />
+          <div className="w-0.5 h-6 bg-gray-300" />
+        </>
+      )}
+
+      {/* VP + SG + Trésorier */}
+      <div className="flex flex-wrap justify-center gap-4 relative">
+        {vp && <OrgNode name={`${vp.citoyen.nom} ${vp.citoyen.prenom}`} role="Vice-Président" color="[#002664]" />}
+        {sg && <OrgNode name={`${sg.citoyen.nom} ${sg.citoyen.prenom}`} role="Secrétaire Général" color="[#002664]" />}
+        {tresorier && <OrgNode name={`${tresorier.citoyen.nom} ${tresorier.citoyen.prenom}`} role="Trésorier" color="[#002664]" />}
+      </div>
+
+      {/* Other executif members */}
+      {others.length > 0 && (
+        <>
+          <div className="w-0.5 h-4 bg-gray-200" />
+          <div className="flex flex-wrap justify-center gap-3">
+            {others.map(m => (
+              <OrgNode key={m.id} name={`${m.citoyen.nom} ${m.citoyen.prenom}`} role={m.fonction} color="[#002664]" />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Horizontal separator */}
+      {(religieux.length > 0 || conseillers.length > 0) && (
+        <div className="w-full border-t-2 border-dashed border-gray-200 my-2" />
+      )}
+
+      {/* Religieux + Conseillers side by side */}
+      <div className="flex flex-wrap justify-center gap-12">
+        {religieux.length > 0 && (
+          <div className="flex flex-col items-center gap-3">
+            <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full">Conseil Religieux</span>
+            {imamPrincipal && <OrgNode name={`${imamPrincipal.citoyen.nom} ${imamPrincipal.citoyen.prenom}`} role={imamPrincipal.fonction} color="emerald-600" highlight />}
+            {religieux.length > 1 && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {religieux.slice(1).map(m => (
+                  <OrgNode key={m.id} name={`${m.citoyen.nom} ${m.citoyen.prenom}`} role={m.fonction} color="emerald-600" />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {conseillers.length > 0 && (
+          <div className="flex flex-col items-center gap-3">
+            <span className="text-xs font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-3 py-1 rounded-full">Conseillers</span>
+            {conseillerPrincipal && <OrgNode name={`${conseillerPrincipal.citoyen.nom} ${conseillerPrincipal.citoyen.prenom}`} role={conseillerPrincipal.fonction} color="amber-600" highlight />}
+            {conseillers.length > 1 && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {conseillers.slice(1).map(m => (
+                  <OrgNode key={m.id} name={`${m.citoyen.nom} ${m.citoyen.prenom}`} role={m.fonction} color="amber-600" />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

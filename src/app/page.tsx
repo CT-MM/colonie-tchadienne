@@ -20,7 +20,9 @@ import {
   Download,
   X,
   FileText,
+  Sparkles,
 } from 'lucide-react'
+import SmartSearch, { SmartFilter } from '@/components/SmartSearch'
 
 interface Stats {
   totalCitoyens: number
@@ -48,6 +50,22 @@ export default function Dashboard() {
   const [showListeModal, setShowListeModal] = useState<'reguliers' | 'irreguliers' | null>(null)
   const [listeData, setListeData] = useState<any[]>([])
   const [listeLoading, setListeLoading] = useState(false)
+  const isAdmin = (session?.user as any)?.role === 'admin'
+
+  const dashSmartFilters: SmartFilter[] = [
+    { label: 'Liste des réguliers', description: 'Générer la liste des membres en situation régulière', params: { action: 'reguliers' } },
+    { label: 'Liste des irréguliers', description: 'Générer la liste des membres en situation irrégulière', params: { action: 'irreguliers' } },
+    { label: 'Voir les membres', description: 'Aller à la page des membres', params: { nav: '/citoyens' } },
+    { label: 'Voir la trésorerie', description: 'Aller à la page de trésorerie', params: { nav: '/tresorerie' } },
+    { label: 'Voir le bureau', description: 'Aller à la page du bureau exécutif', params: { nav: '/bureau' } },
+    { label: 'Voir les événements', description: 'Aller au calendrier des événements', params: { nav: '/evenements' } },
+  ]
+
+  const handleDashSmartFilter = (params: Record<string, string>) => {
+    if (params.action === 'reguliers') handleShowListe('reguliers')
+    else if (params.action === 'irreguliers') handleShowListe('irreguliers')
+    else if (params.nav) router.push(params.nav)
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -112,16 +130,25 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
       <main className="lg:ml-72 p-6 lg:p-8">
-        <div className="mb-8">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Tableau de bord</h1>
-          <p className="text-gray-500 mt-1">
-            Vue d&apos;ensemble de la communauté tchadienne
-          </p>
-          <div className="mt-3 h-1 w-24 rounded-full overflow-hidden flex">
-            <div className="h-full w-1/3 bg-tchad-blue" />
-            <div className="h-full w-1/3 bg-tchad-yellow" />
-            <div className="h-full w-1/3 bg-tchad-red" />
+        <div className="flex items-start justify-between mb-8 flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Tableau de bord</h1>
+            <p className="text-gray-500 mt-1">
+              Vue d&apos;ensemble de la communauté tchadienne
+            </p>
+            <div className="mt-3 h-1 w-24 rounded-full overflow-hidden flex">
+              <div className="h-full w-1/3 bg-tchad-blue" />
+              <div className="h-full w-1/3 bg-tchad-yellow" />
+              <div className="h-full w-1/3 bg-tchad-red" />
+            </div>
           </div>
+          {isAdmin && (
+            <SmartSearch
+              filters={dashSmartFilters}
+              onApplyFilter={handleDashSmartFilter}
+              placeholder="Ex: liste des réguliers, trésorerie..."
+            />
+          )}
         </div>
 
         {loading || !stats ? (

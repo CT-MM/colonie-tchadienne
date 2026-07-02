@@ -10,6 +10,7 @@ import {
   UserPlus, CheckCircle, Clock, XCircle, DollarSign,
   ArrowUpAZ, ArrowDownZA, Download, ChevronDown, X, FileText, Send, Copy, SkipForward,
 } from 'lucide-react'
+import SmartSearch, { SmartFilter } from '@/components/SmartSearch'
 
 interface Citoyen {
   id: string
@@ -60,6 +61,29 @@ function CitoyensContent() {
   const [copied, setCopied] = useState(false)
   const [broadcastIndex, setBroadcastIndex] = useState(-1)
   const [broadcastSent, setBroadcastSent] = useState<Set<number>>(new Set())
+
+  const membresSmartFilters: SmartFilter[] = [
+    { label: 'Membres sans carte de séjour', description: 'Tous les membres n\'ayant pas de carte de séjour', params: { statut: '', carteColonie: '', carteSejour: 'Non' } },
+    { label: 'Membres irréguliers', description: 'Membres en situation irrégulière', params: { statut: 'Irrégulier', carteColonie: '', carteSejour: '' } },
+    { label: 'Membres sans carte de colonie', description: 'Membres n\'ayant pas encore leur carte', params: { statut: '', carteColonie: 'Non', carteSejour: '' } },
+    { label: 'Cartes de colonie en cours', description: 'Membres dont la carte est en cours de fabrication', params: { statut: '', carteColonie: 'Encours', carteSejour: '' } },
+    { label: 'Membres de Moanda', description: 'Tous les membres résidant à Moanda', params: { ville: 'Moanda', statut: '', carteColonie: '', carteSejour: '' } },
+    { label: 'Membres de Mounana', description: 'Tous les membres résidant à Mounana', params: { ville: 'Mounana', statut: '', carteColonie: '', carteSejour: '' } },
+    { label: 'Hommes', description: 'Tous les membres masculins', params: { sexe: 'M', statut: '', carteColonie: '', carteSejour: '' } },
+    { label: 'Femmes', description: 'Toutes les membres féminines', params: { sexe: 'F', statut: '', carteColonie: '', carteSejour: '' } },
+    { label: 'Membres réguliers', description: 'Membres en situation régulière', params: { statut: 'Régulier', carteColonie: '', carteSejour: '' } },
+    { label: 'Tous les membres', description: 'Réinitialiser tous les filtres', params: { ville: '', statut: '', carteColonie: '', carteSejour: '', quartier: '', situationFamiliale: '', familleAuGabon: '' } },
+  ]
+
+  const handleSmartFilter = (params: Record<string, string>) => {
+    if (params.ville !== undefined) setVille(params.ville)
+    if (params.statut !== undefined) setStatut(params.statut)
+    if (params.carteColonie !== undefined) setCarteColonie(params.carteColonie)
+    if (params.quartier !== undefined) setQuartier(params.quartier)
+    if (params.situationFamiliale !== undefined) setSituationFamiliale(params.situationFamiliale)
+    if (params.familleAuGabon !== undefined) setFamilleAuGabon(params.familleAuGabon)
+    setPage(1)
+  }
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -353,6 +377,15 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
             <p className="text-gray-500">{total} membres enregistrés</p>
           </div>
           <div className="flex gap-2 mt-3 sm:mt-0 flex-wrap">
+            {isAdmin && (
+              <SmartSearch
+                filters={membresSmartFilters}
+                onApplyFilter={handleSmartFilter}
+                onExportCSV={handleExport}
+                onExportPDF={handleExportPDF}
+                placeholder="Ex: irréguliers, sans carte, Moanda..."
+              />
+            )}
             {isAdmin && groupLink && (
               <button
                 onClick={openBroadcast}

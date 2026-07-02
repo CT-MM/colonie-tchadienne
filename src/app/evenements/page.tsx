@@ -4,7 +4,8 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { Calendar, Plus, Trash2, MapPin, Clock, X } from 'lucide-react'
+import { Calendar, Plus, Trash2, MapPin, Clock, X, Download, FileText } from 'lucide-react'
+import SmartSearch, { SmartFilter } from '@/components/SmartSearch'
 
 const TYPES = [
   { value: 'reunion', label: 'Réunion' },
@@ -68,6 +69,45 @@ export default function EvenementsPage() {
   }
 
   const now = new Date().toISOString().split('T')[0]
+  const [filterType, setFilterType] = useState('')
+
+  const eventSmartFilters: SmartFilter[] = [
+    { label: 'Tous les événements', description: 'Afficher tous les événements', params: { type: '' } },
+    { label: 'Réunions', description: 'Uniquement les réunions', params: { type: 'reunion' } },
+    { label: 'Fêtes', description: 'Uniquement les fêtes et célébrations', params: { type: 'fete' } },
+    { label: 'Assemblées générales', description: 'Uniquement les assemblées générales', params: { type: 'assemblee' } },
+    { label: 'Autres événements', description: 'Événements divers', params: { type: 'autre' } },
+  ]
+
+  const handleEventSmartFilter = (params: Record<string, string>) => {
+    setFilterType(params.type || '')
+  }
+
+  const exportEventsPDF = () => {
+    const target = filterType ? evenements.filter(e => e.type === filterType) : evenements
+    const w = window.open('', '_blank')
+    if (!w) return
+    w.document.write(`<html><head><title>Événements</title><style>
+      body{font-family:Arial,sans-serif;padding:30px;color:#1a1a1a}
+      h1{color:#002664;border-bottom:3px solid #FECB00;padding-bottom:8px}
+      table{width:100%;border-collapse:collapse;margin-top:16px}
+      th{background:#002664;color:white;padding:10px;text-align:left;font-size:13px}
+      td{padding:8px 10px;border-bottom:1px solid #eee;font-size:13px}
+      tr:nth-child(even){background:#f8f9fa}
+      .footer{margin-top:20px;text-align:center;color:#999;font-size:11px}
+    </style></head><body>
+      <h1>🇹🇩 Événements — Colonie Tchadienne de la Lebombi-Leyou</h1>
+      <p style="color:#666;font-size:13px">Généré le ${new Date().toLocaleDateString('fr-FR')} — ${target.length} événement${target.length > 1 ? 's' : ''}</p>
+      <table><thead><tr><th>Date</th><th>Titre</th><th>Type</th><th>Lieu</th><th>Heure</th></tr></thead><tbody>
+      ${target.sort((a: any, b: any) => a.date.localeCompare(b.date)).map((e: any) => `<tr><td>${new Date(e.date).toLocaleDateString('fr-FR')}</td><td>${e.titre}</td><td>${e.type}</td><td>${e.lieu || '—'}</td><td>${e.heure || '—'}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Document généré automatiquement</div>
+    </body></html>`)
+    w.document.close()
+    w.print()
+  }
+
+  const filteredEvents = filterType ? evenements.filter(e => e.type === filterType) : evenements
 
   if (status !== 'authenticated') return null
 
@@ -80,18 +120,39 @@ export default function EvenementsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Événements</h1>
             <p className="text-gray-500">Calendrier des activités de la colonie</p>
           </div>
-          {isAdmin && (
-            <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2">
-              <Plus size={18} />
-              Nouvel événement
-            </button>
-          )}
+          <div className="flex gap-2 flex-wrap">
+            {isAdmin && (
+              <>
+                <SmartSearch
+                  filters={eventSmartFilters}
+                  onApplyFilter={handleEventSmartFilter}
+                  onExportPDF={exportEventsPDF}
+                  placeholder="Ex: réunions, fêtes..."
+                />
+                <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2">
+                  <Plus size={18} />
+                  Nouvel événement
+                </button>
+              </>
+            )}
+          </div>
         </div>
+
+        {filterType && (
+          <div className="mb-4 flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-2">
+            <span className="text-sm text-purple-700 font-medium">
+              Filtre : {TYPES.find(t => t.value === filterType)?.label}
+            </span>
+            <button onClick={() => setFilterType('')} className="ml-auto text-purple-400 hover:text-purple-600">
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         {/* À venir */}
         <h2 className="text-lg font-semibold text-gray-800 mb-3">À venir</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {evenements.filter((e) => e.date >= now).length === 0 && (
+          {filteredEvents.filter((e) => e.date >= now).length === 0 && (
             <div className="card col-span-full text-center py-8 text-gray-400">
               <Calendar size={40} className="mx-auto mb-2 opacity-30" />
               Aucun événement à venir
@@ -133,11 +194,11 @@ export default function EvenementsPage() {
         </div>
 
         {/* Passés */}
-        {evenements.filter((e) => e.date < now).length > 0 && (
+        {filteredEvents.filter((e) => e.date < now).length > 0 && (
           <>
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Passés</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {evenements
+              {filteredEvents
                 .filter((e) => e.date < now)
                 .sort((a, b) => b.date.localeCompare(a.date))
                 .map((ev) => (

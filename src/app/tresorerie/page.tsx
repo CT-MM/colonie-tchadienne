@@ -7,8 +7,9 @@ import Sidebar from '@/components/Sidebar'
 import {
   DollarSign, Plus, Search, Trash2, TrendingUp, TrendingDown,
   Wallet, FileText, ArrowUpCircle, ArrowDownCircle, Calendar,
-  Download, X,
+  Download, X, Sparkles,
 } from 'lucide-react'
+import SmartSearch, { SmartFilter } from '@/components/SmartSearch'
 
 function formatMontant(n: number) {
   return new Intl.NumberFormat('fr-FR').format(n) + ' FCFA'
@@ -197,6 +198,31 @@ export default function TresoreriePage() {
     setGenerating(false)
   }
 
+  const tresorerieSmartFilters: SmartFilter[] = [
+    { label: 'Contributions', description: 'Afficher les contributions des membres', params: { tab: 'contributions' } },
+    { label: 'Dépenses', description: 'Afficher toutes les dépenses', params: { tab: 'depenses' } },
+    { label: 'Générer un rapport', description: 'Créer un rapport PDF de la trésorerie', params: { action: 'rapport' } },
+    { label: 'Rapport du mois', description: 'Rapport du mois en cours', params: { action: 'rapport-mois' } },
+    { label: 'Rapport de l\'année', description: 'Rapport de l\'année en cours', params: { action: 'rapport-annee' } },
+  ]
+
+  const handleTresoSmartFilter = (params: Record<string, string>) => {
+    if (params.tab) setTab(params.tab as any)
+    if (params.action === 'rapport') setShowRapport(true)
+    if (params.action === 'rapport-mois') {
+      const now = new Date()
+      setRapportDateDebut(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`)
+      setRapportDateFin(now.toISOString().split('T')[0])
+      setShowRapport(true)
+    }
+    if (params.action === 'rapport-annee') {
+      const now = new Date()
+      setRapportDateDebut(`${now.getFullYear()}-01-01`)
+      setRapportDateFin(now.toISOString().split('T')[0])
+      setShowRapport(true)
+    }
+  }
+
   if (status !== 'authenticated') return null
 
   return (
@@ -208,13 +234,22 @@ export default function TresoreriePage() {
             <h1 className="text-2xl font-bold text-gray-900">Trésorerie</h1>
             <p className="text-gray-500">Gestion des contributions et dépenses</p>
           </div>
-          <button
-            onClick={() => setShowRapport(true)}
-            className="btn-secondary flex items-center gap-2"
-          >
-            <FileText size={18} />
-            Générer un rapport
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            {isAdmin && (
+              <SmartSearch
+                filters={tresorerieSmartFilters}
+                onApplyFilter={handleTresoSmartFilter}
+                placeholder="Ex: rapport du mois, dépenses..."
+              />
+            )}
+            <button
+              onClick={() => setShowRapport(true)}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <FileText size={18} />
+              Générer un rapport
+            </button>
+          </div>
         </div>
 
         {/* Solde cards */}
