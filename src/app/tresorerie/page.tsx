@@ -151,8 +151,10 @@ export default function TresoreriePage() {
       h2 { color: #002664; margin-top: 30px; }
       table { width: 100%; border-collapse: collapse; margin: 15px 0; }
       th { background: #002664; color: white; padding: 10px; text-align: left; }
-      td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
+      td { padding: 8px 10px; border-bottom: 1px solid #ddd; vertical-align: middle; }
       tr:nth-child(even) { background: #f9f9f9; }
+      .photo{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb}
+      .no-photo{width:36px;height:36px;border-radius:50%;background:#e5e7eb;display:inline-flex;align-items:center;justify-content:center;color:#9ca3af;font-weight:bold;font-size:12px}
       .total { font-weight: bold; font-size: 18px; color: #002664; margin: 10px 0; }
       .solde { font-size: 22px; font-weight: bold; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; }
       .positif { background: #d4edda; color: #155724; }
@@ -166,9 +168,10 @@ export default function TresoreriePage() {
 
     html += `<h2>CONTRIBUTIONS (${contribs.count} entrées)</h2>`
     if (contribs.data.length > 0) {
-      html += `<table><tr><th>Date</th><th>Membre</th><th>Ville</th><th>Montant</th><th>Description</th></tr>`
+      html += `<table><tr><th>Date</th><th>Photo</th><th>Membre</th><th>Ville</th><th>Montant</th><th>Description</th></tr>`
       for (const c of contribs.data) {
-        html += `<tr><td>${new Date(c.date).toLocaleDateString('fr-FR')}</td><td>${c.citoyen.nom} ${c.citoyen.prenom}</td><td>${c.citoyen.ville}</td><td>${formatMontant(c.montant)}</td><td>${c.description || '-'}</td></tr>`
+        const photo = c.citoyen.photo ? `<img src="${c.citoyen.photo}" class="photo"/>` : `<div class="no-photo">${c.citoyen.prenom[0]}${c.citoyen.nom[0]}</div>`
+        html += `<tr><td>${new Date(c.date).toLocaleDateString('fr-FR')}</td><td>${photo}</td><td><strong>${c.citoyen.nom} ${c.citoyen.prenom}</strong></td><td>${c.citoyen.ville}</td><td>${formatMontant(c.montant)}</td><td>${c.description || '-'}</td></tr>`
       }
       html += `</table><p class="total">Total contributions : ${formatMontant(contribs.total)}</p>`
     } else {

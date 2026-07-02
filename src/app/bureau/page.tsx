@@ -54,14 +54,16 @@ export default function BureauPage() {
       h1{color:#002664;border-bottom:3px solid #FECB00;padding-bottom:8px}
       table{width:100%;border-collapse:collapse;margin-top:16px}
       th{background:#002664;color:white;padding:10px;text-align:left;font-size:13px}
-      td{padding:8px 10px;border-bottom:1px solid #eee;font-size:13px}
+      td{padding:8px 10px;border-bottom:1px solid #eee;font-size:13px;vertical-align:middle}
       tr:nth-child(even){background:#f8f9fa}
+      .photo{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb}
+      .no-photo{width:40px;height:40px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-weight:bold;font-size:14px}
       .footer{margin-top:20px;text-align:center;color:#999;font-size:11px}
     </style></head><body>
       <h1>🇹🇩 ${catLabel} — Colonie Tchadienne de la Lebombi-Leyou</h1>
       <p style="color:#666;font-size:13px">Généré le ${new Date().toLocaleDateString('fr-FR')} — ${target.length} membre${target.length > 1 ? 's' : ''}</p>
-      <table><thead><tr><th>N°</th><th>Nom & Prénom</th><th>Fonction</th><th>Téléphone</th><th>Ville</th></tr></thead><tbody>
-      ${target.map((m, i) => `<tr><td>${i + 1}</td><td>${m.citoyen.nom} ${m.citoyen.prenom}</td><td>${m.fonction}</td><td>${m.citoyen.telephone || '—'}</td><td>${m.citoyen.ville}</td></tr>`).join('')}
+      <table><thead><tr><th>N°</th><th>Photo</th><th>Nom & Prénom</th><th>Fonction</th><th>Téléphone</th><th>Ville</th></tr></thead><tbody>
+      ${target.map((m, i) => `<tr><td>${i + 1}</td><td>${m.citoyen.photo ? `<img src="${m.citoyen.photo}" class="photo"/>` : `<div class="no-photo">${m.citoyen.prenom[0]}${m.citoyen.nom[0]}</div>`}</td><td><strong>${m.citoyen.nom} ${m.citoyen.prenom}</strong></td><td>${m.fonction}</td><td>${m.citoyen.telephone || '—'}</td><td>${m.citoyen.ville}</td></tr>`).join('')}
       </tbody></table>
       <div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Document généré automatiquement</div>
     </body></html>`)

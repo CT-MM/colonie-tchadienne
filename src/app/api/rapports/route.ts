@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     const contributions = await prisma.contribution.findMany({
       where,
-      include: { citoyen: { select: { nom: true, prenom: true, ville: true, telephone: true } } },
+      include: { citoyen: { select: { nom: true, prenom: true, ville: true, telephone: true, photo: true } } },
       orderBy: { date: 'asc' },
     })
 
