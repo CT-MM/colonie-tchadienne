@@ -51,6 +51,7 @@ export default function Dashboard() {
   const [showListeModal, setShowListeModal] = useState<'reguliers' | 'irreguliers' | null>(null)
   const [listeData, setListeData] = useState<any[]>([])
   const [listeLoading, setListeLoading] = useState(false)
+  const [showAllQuartiers, setShowAllQuartiers] = useState(false)
   const isAdmin = (session?.user as any)?.role === 'admin'
 
   const dashSmartFilters: SmartFilter[] = [
@@ -252,49 +253,60 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Top 5 quartiers */}
-            {stats.topQuartiers.length > 0 && (
-              <>
-                <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <MapPin size={20} className="text-tchad-blue" />
-                  Top 5 quartiers
-                </h2>
-                <div className="card">
-                  <div className="space-y-4">
-                    {stats.topQuartiers.map((q, i) => {
-                      const maxCount = stats.topQuartiers[0].count
-                      const percent = maxCount > 0 ? (q.count / maxCount) * 100 : 0
-                      const colors = ['bg-tchad-blue', 'bg-tchad-red', 'bg-tchad-yellow', 'bg-green-500', 'bg-purple-500']
-                      return (
-                        <div key={q.nom} className="flex items-center gap-3">
-                          {i < 3 ? (
-                            <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-xl">
-                              {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
-                            </div>
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 flex-shrink-0">
-                              {i + 1}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-baseline mb-1">
-                              <span className="text-sm font-medium text-gray-700 truncate">{q.nom}</span>
-                              <span className="text-sm font-bold text-gray-900 ml-2 flex-shrink-0">{q.count} <span className="text-xs font-normal text-gray-400">membres</span></span>
-                            </div>
-                            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full ${colors[i]} rounded-full transition-all duration-700`}
-                                style={{ width: `${percent}%` }}
-                              />
+            {/* Quartiers */}
+            {stats.topQuartiers.length > 0 && (() => {
+              const displayedQuartiers = showAllQuartiers ? stats.topQuartiers : stats.topQuartiers.slice(0, 5)
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                      <MapPin size={20} className="text-tchad-blue" />
+                      {showAllQuartiers ? `Tous les quartiers (${stats.topQuartiers.length})` : 'Top 5 quartiers'}
+                    </h2>
+                    <button
+                      onClick={() => setShowAllQuartiers(!showAllQuartiers)}
+                      className="text-sm text-tchad-blue hover:underline font-medium"
+                    >
+                      {showAllQuartiers ? 'Top 5 seulement' : `Voir tous (${stats.topQuartiers.length})`}
+                    </button>
+                  </div>
+                  <div className="card">
+                    <div className="space-y-4">
+                      {displayedQuartiers.map((q, i) => {
+                        const maxCount = stats.topQuartiers[0].count
+                        const percent = maxCount > 0 ? (q.count / maxCount) * 100 : 0
+                        const colors = ['bg-tchad-blue', 'bg-tchad-red', 'bg-tchad-yellow', 'bg-green-500', 'bg-purple-500']
+                        return (
+                          <div key={q.nom} className="flex items-center gap-3">
+                            {i < 3 ? (
+                              <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-xl">
+                                {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 flex-shrink-0">
+                                {i + 1}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-baseline mb-1">
+                                <span className="text-sm font-medium text-gray-700 truncate">{q.nom}</span>
+                                <span className="text-sm font-bold text-gray-900 ml-2 flex-shrink-0">{q.count} <span className="text-xs font-normal text-gray-400">membres</span></span>
+                              </div>
+                              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full ${colors[i % colors.length]} rounded-full transition-all duration-700`}
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )
+            })()}
           </>
         )}
       </main>

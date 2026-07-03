@@ -58,7 +58,6 @@ export async function GET() {
 
   const topQuartiers = Object.entries(quartierCount)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
     .map(([nom, count]) => ({ nom, count }))
 
   return NextResponse.json({
