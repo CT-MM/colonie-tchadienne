@@ -106,15 +106,17 @@ export default function BureauPage() {
   }, [status, router])
 
   const fetchData = useCallback(async () => {
-    const [bureauRes, citRes] = await Promise.all([
-      fetch('/api/bureau'),
-      fetch('/api/citoyens?limit=2000'),
-    ])
+    const bureauRes = await fetch('/api/bureau')
     const bureauData = await bureauRes.json()
-    const citData = await citRes.json()
     setMembres(bureauData.membres || [])
-    setCitoyens(citData.citoyens || [])
   }, [])
+
+  const fetchCitoyens = useCallback(async () => {
+    if (citoyens.length > 0) return
+    const citRes = await fetch('/api/citoyens?limit=2000')
+    const citData = await citRes.json()
+    setCitoyens(citData.citoyens || [])
+  }, [citoyens.length])
 
   useEffect(() => {
     if (status === 'authenticated') fetchData()
@@ -183,6 +185,7 @@ export default function BureauPage() {
     setCategorie(cat)
     setFonction(FONCTIONS[cat][0])
     setShowAdd(true)
+    fetchCitoyens()
   }
 
   if (status !== 'authenticated') return null
@@ -226,7 +229,7 @@ export default function BureauPage() {
                   <Download size={16} /> CSV
                 </button>
                 <button
-                  onClick={() => { setCategorie('executif'); setFonction(FONCTIONS.executif[0]); setShowAdd(true) }}
+                  onClick={() => { setCategorie('executif'); setFonction(FONCTIONS.executif[0]); setShowAdd(true); fetchCitoyens() }}
                   className="btn-primary flex items-center gap-2"
                 >
                   <Plus size={18} />

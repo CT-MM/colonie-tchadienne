@@ -11,6 +11,7 @@ export async function GET() {
     prisma.citoyen.findMany({
       select: {
         ville: true,
+        quartier: true,
         sexe: true,
         carteSejour: true,
         carteColonie: true,
@@ -32,8 +33,10 @@ export async function GET() {
   let employes = 0, nonEmployes = 0
   let hommes = 0, femmes = 0
   let montantTotal = 0
+  const quartierCount: Record<string, number> = {}
 
   for (const c of citoyens) {
+    if (c.quartier) quartierCount[c.quartier] = (quartierCount[c.quartier] || 0) + 1
     if (c.ville === 'Moanda') totalMoanda++
     else if (c.ville === 'Mounana') totalMounana++
     if (c.carteSejour === 'Oui') carteSejourOui++
@@ -53,9 +56,15 @@ export async function GET() {
   const totalContributions = totalContrib._sum.montant || 0
   const totalDepenses = totalDep._sum.montant || 0
 
+  const topQuartiers = Object.entries(quartierCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([nom, count]) => ({ nom, count }))
+
   return NextResponse.json({
     totalCitoyens: citoyens.length,
     parVille: { Moanda: totalMoanda, Mounana: totalMounana },
+    topQuartiers,
     carteSejour: { oui: carteSejourOui, non: citoyens.length - carteSejourOui },
     carteColonie: { ok: carteColonieOk, encours: carteColonieEncours, non: carteColonieNon },
     regularite: { regulier: reguliers, irregulier: irreguliers, enCours },

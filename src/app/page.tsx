@@ -33,6 +33,7 @@ interface Stats {
   emploi: { employe: number; nonEmploye: number }
   sexe: { hommes: number; femmes: number }
   montantTotal: number
+  topQuartiers: { nom: string; count: number }[]
   tresorerie: {
     totalContributions: number
     totalDepenses: number
@@ -237,7 +238,7 @@ export default function Dashboard() {
             </div>
 
             {/* Progress bars */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               <div className="card">
                 <h3 className="font-semibold text-gray-800 mb-4">Répartition par ville</h3>
                 <ProgressBar label="Moanda" value={stats.parVille.Moanda} max={stats.totalCitoyens} color="bg-tchad-blue" />
@@ -250,6 +251,50 @@ export default function Dashboard() {
                 <ProgressBar label="Non demandée" value={stats.carteColonie.non} max={stats.totalCitoyens} color="bg-gray-400" />
               </div>
             </div>
+
+            {/* Top 5 quartiers */}
+            {stats.topQuartiers.length > 0 && (
+              <>
+                <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <MapPin size={20} className="text-tchad-blue" />
+                  Top 5 quartiers
+                </h2>
+                <div className="card">
+                  <div className="space-y-4">
+                    {stats.topQuartiers.map((q, i) => {
+                      const maxCount = stats.topQuartiers[0].count
+                      const percent = maxCount > 0 ? (q.count / maxCount) * 100 : 0
+                      const colors = ['bg-tchad-blue', 'bg-tchad-red', 'bg-tchad-yellow', 'bg-green-500', 'bg-purple-500']
+                      return (
+                        <div key={q.nom} className="flex items-center gap-3">
+                          {i < 3 ? (
+                            <div className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-xl">
+                              {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 flex-shrink-0">
+                              {i + 1}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-baseline mb-1">
+                              <span className="text-sm font-medium text-gray-700 truncate">{q.nom}</span>
+                              <span className="text-sm font-bold text-gray-900 ml-2 flex-shrink-0">{q.count} <span className="text-xs font-normal text-gray-400">membres</span></span>
+                            </div>
+                            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${colors[i]} rounded-full transition-all duration-700`}
+                                style={{ width: `${percent}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
       </main>
