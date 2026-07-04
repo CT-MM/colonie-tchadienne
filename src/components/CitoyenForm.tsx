@@ -338,7 +338,11 @@ export default function CitoyenForm({ initial, isEdit }: { initial?: CitoyenData
               <label className="label-field">Statut</label>
               <select
                 value={data.carteSejour}
-                onChange={(e) => set('carteSejour', e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value
+                  set('carteSejour', val)
+                  if (val === 'Oui') set('situationRegularite', 'Régulier')
+                }}
                 className="select-field"
               >
                 <option value="Non">Non</option>

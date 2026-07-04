@@ -34,9 +34,16 @@ export async function GET() {
   let hommes = 0, femmes = 0
   let montantTotal = 0
   const quartierCount: Record<string, number> = {}
+  const quartierCanonical: Record<string, string> = {}
+
+  const normalizeQuartier = (q: string) => q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ')
 
   for (const c of citoyens) {
-    if (c.quartier) quartierCount[c.quartier] = (quartierCount[c.quartier] || 0) + 1
+    if (c.quartier) {
+      const key = normalizeQuartier(c.quartier)
+      if (!quartierCanonical[key]) quartierCanonical[key] = c.quartier.trim()
+      quartierCount[key] = (quartierCount[key] || 0) + 1
+    }
     if (c.ville === 'Moanda') totalMoanda++
     else if (c.ville === 'Mounana') totalMounana++
     if (c.carteSejour === 'Oui') carteSejourOui++
@@ -58,7 +65,7 @@ export async function GET() {
 
   const topQuartiers = Object.entries(quartierCount)
     .sort((a, b) => b[1] - a[1])
-    .map(([nom, count]) => ({ nom, count }))
+    .map(([key, count]) => ({ nom: quartierCanonical[key], count }))
 
   return NextResponse.json({
     totalCitoyens: citoyens.length,

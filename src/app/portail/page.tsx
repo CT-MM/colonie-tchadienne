@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CreditCard, Search, Lock, Phone, Eye, EyeOff, ArrowLeft, User, DollarSign, Users, BookOpen, Calendar, MapPin, Clock, LogOut, Shield, KeyRound, Crown, Scale } from 'lucide-react'
+import { CreditCard, Search, Lock, Phone, Eye, EyeOff, ArrowLeft, User, DollarSign, Users, BookOpen, Calendar, MapPin, Clock, LogOut, Shield, KeyRound, Crown, Scale, MessageCircle } from 'lucide-react'
 
 type Step = 'search' | 'create-pin' | 'login' | 'reset-pin' | 'dashboard'
 
@@ -391,6 +391,7 @@ export default function PortailPage() {
 
 function Dashboard({ data, activeTab, setActiveTab, onLogout }: { data: any; activeTab: string; setActiveTab: (t: string) => void; onLogout: () => void }) {
   const c = data.citoyen
+  const groupLink = data.groupLink
   const tabs = [
     { id: 'infos', label: 'Mes infos', icon: User },
     { id: 'cotisations', label: 'Cotisations', icon: DollarSign },
@@ -417,9 +418,22 @@ function Dashboard({ data, activeTab, setActiveTab, onLogout }: { data: any; act
               <p className="text-white/50 text-xs font-mono">{c.numeroCarte}</p>
             </div>
           </div>
-          <button onClick={onLogout} className="text-white/60 hover:text-white flex items-center gap-1 text-sm">
-            <LogOut size={16} /> Quitter
-          </button>
+          <div className="flex items-center gap-2">
+            {groupLink && (
+              <a
+                href={groupLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <MessageCircle size={16} />
+                <span className="hidden sm:inline">Groupe WhatsApp</span>
+              </a>
+            )}
+            <button onClick={onLogout} className="text-white/60 hover:text-white flex items-center gap-1 text-sm">
+              <LogOut size={16} /> Quitter
+            </button>
+          </div>
         </div>
       </div>
 
