@@ -457,6 +457,27 @@ function Dashboard({ data, activeTab, setActiveTab, onLogout }: { data: any; act
         </div>
       </div>
 
+      {/* WhatsApp Group Banner */}
+      {groupLink && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4">
+          <a
+            href={groupLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 w-full p-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 transition-colors"
+          >
+            <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <MessageCircle size={20} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-green-800 text-sm">Rejoindre le groupe WhatsApp</p>
+              <p className="text-xs text-green-600">Restez informé des actualités de la colonie</p>
+            </div>
+            <span className="text-green-600 font-medium text-sm flex-shrink-0">Rejoindre →</span>
+          </a>
+        </div>
+      )}
+
       {/* Content */}
       <div className="max-w-3xl mx-auto p-4 sm:p-6">
         {activeTab === 'infos' && <TabInfos citoyen={c} />}
