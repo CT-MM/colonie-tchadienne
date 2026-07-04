@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   })
 
   const charte = await prisma.charte.findFirst()
-  const settings = await prisma.setting.findUnique({ where: { key: 'group-link' } })
+  const settings = await prisma.setting.findUnique({ where: { key: 'group_link' } })
   const totalContrib = citoyen.contributions.reduce((s, c) => s + c.montant, 0)
 
   return NextResponse.json({
