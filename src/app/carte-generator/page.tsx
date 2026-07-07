@@ -228,9 +228,21 @@ function CarteGeneratorContent() {
       fetch('/api/settings/card-layout')
         .then(r => r.json())
         .then(data => {
-          if (data.layout) setLayout({ ...defaultLayout, ...data.layout })
+          if (data.layout) {
+            setLayout({ ...defaultLayout, ...data.layout })
+          } else {
+            try {
+              const saved = localStorage.getItem(LAYOUT_KEY)
+              if (saved) setLayout({ ...defaultLayout, ...JSON.parse(saved) })
+            } catch {}
+          }
         })
-        .catch(() => {})
+        .catch(() => {
+          try {
+            const saved = localStorage.getItem(LAYOUT_KEY)
+            if (saved) setLayout({ ...defaultLayout, ...JSON.parse(saved) })
+          } catch {}
+        })
     }
   }, [status])
 
@@ -267,6 +279,7 @@ function CarteGeneratorContent() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ layout }),
     })
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout))
     setSavingLayout(false)
     setLayoutSaved(true)
     setTimeout(() => setLayoutSaved(false), 3000)
