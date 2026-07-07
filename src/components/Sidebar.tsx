@@ -45,6 +45,12 @@ export default function Sidebar() {
   })
 
   useEffect(() => {
+    if ((session as any)?.expired) {
+      signOut({ callbackUrl: '/login' })
+    }
+  }, [session])
+
+  useEffect(() => {
     if (logo) return
     fetch('/api/settings/logo')
       .then(r => r.json())

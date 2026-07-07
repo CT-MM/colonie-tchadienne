@@ -1,10 +1,22 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { Settings, Upload, Trash2, Check, X, Image, Link2, Save, Lock, Eye, EyeOff } from 'lucide-react'
+import { Settings, Upload, Trash2, Check, X, Image, Link2, Save, Lock, Eye, EyeOff, Monitor, Smartphone, Tablet, MapPin, Clock, LogOut } from 'lucide-react'
+
+interface Device {
+  id: string
+  browser: string | null
+  os: string | null
+  deviceType: string | null
+  ip: string | null
+  city: string | null
+  country: string | null
+  lastActive: string
+  createdAt: string
+}
 
 export default function ParametresPage() {
   const { data: session, status } = useSession()
@@ -24,12 +36,18 @@ export default function ParametresPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
   const [showPasswords, setShowPasswords] = useState(false)
+  const [devices, setDevices] = useState<Device[]>([])
+  const [loadingDevices, setLoadingDevices] = useState(true)
 
   useEffect(() => {
     if (status === 'unauthenticated' || (status === 'authenticated' && !isAdmin)) {
       router.push('/')
     }
   }, [status, isAdmin, router])
+
+  const fetchDevices = () => {
+    fetch('/api/devices').then(r => r.json()).then(d => setDevices(d.devices || [])).catch(() => {}).finally(() => setLoadingDevices(false))
+  }
 
   useEffect(() => {
     if (status === 'authenticated' && isAdmin) {
@@ -41,6 +59,7 @@ export default function ParametresPage() {
         setGroupLink(linkData.link || '')
         setGroupLinkSaved(linkData.link || '')
       }).catch(() => {}).finally(() => setLoading(false))
+      fetchDevices()
     }
   }, [status, isAdmin])
 
@@ -318,10 +337,11 @@ export default function ParametresPage() {
                 })
                 const data = await res.json()
                 if (res.ok) {
-                  showMsg('success', 'Mot de passe modifié avec succès')
+                  showMsg('success', 'Mot de passe modifié. Déconnexion de tous les appareils...')
                   setCurrentPassword('')
                   setNewPassword('')
                   setConfirmPassword('')
+                  setTimeout(() => signOut({ callbackUrl: '/login' }), 2000)
                 } else {
                   showMsg('error', data.error || 'Erreur lors du changement de mot de passe')
                 }
@@ -334,6 +354,107 @@ export default function ParametresPage() {
               {savingPassword ? 'Modification...' : 'Changer le mot de passe'}
             </button>
           </div>
+        </div>
+
+        {/* Connected devices section */}
+        <div className="card max-w-2xl mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+              <Monitor size={18} className="text-tchad-blue" />
+              Appareils connectés
+            </h2>
+            {devices.length > 0 && (
+              <button
+                onClick={async () => {
+                  if (!confirm('Déconnecter tous les appareils ? Vous serez aussi déconnecté.')) return
+                  await fetch('/api/devices', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: 'all' }),
+                  })
+                  signOut({ callbackUrl: '/login' })
+                }}
+                className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 font-medium"
+              >
+                <LogOut size={14} />
+                Tout déconnecter
+              </button>
+            )}
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            Historique des connexions à votre compte.
+          </p>
+
+          {loadingDevices ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin w-6 h-6 border-3 border-tchad-blue border-t-transparent rounded-full" />
+            </div>
+          ) : devices.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-sm">
+              Aucun appareil enregistré
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {devices.map((d, i) => {
+                const DeviceIcon = d.deviceType === 'Mobile' ? Smartphone : d.deviceType === 'Tablette' ? Tablet : Monitor
+                const isRecent = new Date(d.lastActive).getTime() > Date.now() - 1000 * 60 * 30
+                return (
+                  <div key={d.id} className={`flex items-center gap-4 p-4 rounded-xl border ${i === 0 ? 'border-green-200 bg-green-50/50' : 'border-gray-100 bg-gray-50/50'}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${i === 0 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                      <DeviceIcon size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm text-gray-900">
+                          {d.browser || 'Inconnu'} — {d.os || 'Inconnu'}
+                        </p>
+                        {i === 0 && (
+                          <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-semibold uppercase">
+                            Actuel
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                        {(d.city || d.country) && (
+                          <span className="flex items-center gap-1">
+                            <MapPin size={10} />
+                            {[d.city, d.country].filter(Boolean).join(', ')}
+                          </span>
+                        )}
+                        {d.ip && !d.city && (
+                          <span className="flex items-center gap-1">
+                            <MapPin size={10} />
+                            IP: {d.ip}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Clock size={10} />
+                          {new Date(d.lastActive).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                    {i > 0 && (
+                      <button
+                        onClick={async () => {
+                          await fetch('/api/devices', {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ deviceId: d.id }),
+                          })
+                          setDevices(prev => prev.filter(dev => dev.id !== d.id))
+                          showMsg('success', 'Appareil supprimé')
+                        }}
+                        className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                        title="Supprimer cet appareil"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </main>
     </div>

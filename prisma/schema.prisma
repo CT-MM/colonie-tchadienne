@@ -9,13 +9,30 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("viewer") // "admin", "bureau", or "viewer"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  password       String
+  role           String   @default("viewer") // "admin", "bureau", or "viewer"
+  sessionVersion Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  devices        Device[]
+}
+
+model Device {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent  String?
+  browser    String?
+  os         String?
+  deviceType String?
+  ip         String?
+  city       String?
+  country    String?
+  lastActive DateTime @default(now())
+  createdAt  DateTime @default(now())
 }
 
 model Citoyen {
