@@ -2,9 +2,9 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useRef, Suspense } from 'react'
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { Download, Search, User, Printer, Maximize2, X, Settings, RotateCcw } from 'lucide-react'
+import { Download, Search, User, Printer, Maximize2, X, Settings, RotateCcw, Save, Check } from 'lucide-react'
 
 const CARTE_W = 793
 const CARTE_H = 510
@@ -46,15 +46,6 @@ const defaultLayout: CardLayout = {
 }
 
 const LAYOUT_KEY = 'carte-layout-v1'
-
-function loadLayout(): CardLayout {
-  if (typeof window === 'undefined') return defaultLayout
-  try {
-    const saved = localStorage.getItem(LAYOUT_KEY)
-    if (saved) return { ...defaultLayout, ...JSON.parse(saved) }
-  } catch {}
-  return defaultLayout
-}
 
 function generateCardNumber(selected: any): string {
   if (selected?.numeroCarte) return selected.numeroCarte
@@ -222,8 +213,8 @@ function CarteGeneratorContent() {
   const [fullscreen, setFullscreen] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
   const [layout, setLayout] = useState<CardLayout>(defaultLayout)
-
-  useEffect(() => { setLayout(loadLayout()) }, [])
+  const [savingLayout, setSavingLayout] = useState(false)
+  const [layoutSaved, setLayoutSaved] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -231,6 +222,17 @@ function CarteGeneratorContent() {
       router.push('/')
     }
   }, [status, session, router, isAdmin])
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/settings/card-layout')
+        .then(r => r.json())
+        .then(data => {
+          if (data.layout) setLayout({ ...defaultLayout, ...data.layout })
+        })
+        .catch(() => {})
+    }
+  }, [status])
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -253,14 +255,30 @@ function CarteGeneratorContent() {
       c.prenom.toLowerCase().includes(search.toLowerCase())
   )
 
-  const saveLayout = (l: CardLayout) => {
+  const updateLayout = (l: CardLayout) => {
     setLayout(l)
-    localStorage.setItem(LAYOUT_KEY, JSON.stringify(l))
+    setLayoutSaved(false)
   }
 
-  const resetLayout = () => {
+  const saveLayoutToServer = async () => {
+    setSavingLayout(true)
+    await fetch('/api/settings/card-layout', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ layout }),
+    })
+    setSavingLayout(false)
+    setLayoutSaved(true)
+    setTimeout(() => setLayoutSaved(false), 3000)
+  }
+
+  const resetLayout = async () => {
     setLayout(defaultLayout)
-    localStorage.removeItem(LAYOUT_KEY)
+    await fetch('/api/settings/card-layout', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ layout: null }),
+    })
   }
 
   const loadImage = (src: string): Promise<HTMLImageElement> =>
@@ -515,22 +533,35 @@ function CarteGeneratorContent() {
                     <Settings size={14} />
                     Ajuster les positions (L=gauche, T=haut, W=largeur, Px=taille texte)
                   </h3>
-                  <button onClick={resetLayout} className="text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1">
-                    <RotateCcw size={12} /> Réinitialiser
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={resetLayout} className="text-xs text-amber-600 hover:text-amber-800 flex items-center gap-1">
+                      <RotateCcw size={12} /> Réinitialiser
+                    </button>
+                    <button
+                      onClick={saveLayoutToServer}
+                      disabled={savingLayout}
+                      className={`text-xs flex items-center gap-1 px-3 py-1 rounded-lg font-medium transition-colors ${
+                        layoutSaved
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-tchad-blue text-white hover:bg-tchad-blue/90'
+                      } disabled:opacity-50`}
+                    >
+                      {layoutSaved ? <><Check size={12} /> Sauvegardé</> : <><Save size={12} /> {savingLayout ? 'Sauvegarde...' : 'Sauvegarder par défaut'}</>}
+                    </button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  <FieldEditor label="Photo" field="photo" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="N° Carte" field="numero" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="Nom" field="nom" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="Prénom" field="prenom" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="Date naissance" field="dateNaissance" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="Lieu naissance" field="lieuNaissance" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="Sexe" field="sexe" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="Ville" field="ville" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="Profession" field="profession" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="Téléphone" field="telephone" layout={layout} setLayout={saveLayout} />
-                  <FieldEditor label="Date validité" field="validite" layout={layout} setLayout={saveLayout} />
+                  <FieldEditor label="Photo" field="photo" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="N° Carte" field="numero" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="Nom" field="nom" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="Prénom" field="prenom" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="Date naissance" field="dateNaissance" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="Lieu naissance" field="lieuNaissance" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="Sexe" field="sexe" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="Ville" field="ville" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="Profession" field="profession" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="Téléphone" field="telephone" layout={layout} setLayout={updateLayout} />
+                  <FieldEditor label="Date validité" field="validite" layout={layout} setLayout={updateLayout} />
                 </div>
               </div>
             )}

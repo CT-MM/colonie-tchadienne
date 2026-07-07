@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { Settings, Upload, Trash2, Check, X, Image, Link2, Save } from 'lucide-react'
+import { Settings, Upload, Trash2, Check, X, Image, Link2, Save, Lock, Eye, EyeOff } from 'lucide-react'
 
 export default function ParametresPage() {
   const { data: session, status } = useSession()
@@ -19,6 +19,11 @@ export default function ParametresPage() {
   const [groupLink, setGroupLink] = useState('')
   const [groupLinkSaved, setGroupLinkSaved] = useState('')
   const [savingLink, setSavingLink] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [showPasswords, setShowPasswords] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated' || (status === 'authenticated' && !isAdmin)) {
@@ -238,6 +243,96 @@ export default function ParametresPage() {
             <p>• Collez le lien d'invitation de votre groupe WhatsApp, Telegram, ou autre</p>
             <p>• Ce lien sera envoyé automatiquement aux nouveaux inscrits</p>
             <p>• Vous pouvez aussi l'envoyer en masse depuis la liste des membres</p>
+          </div>
+        </div>
+
+        {/* Change password section */}
+        <div className="card max-w-2xl mt-6">
+          <h2 className="font-semibold text-gray-800 flex items-center gap-2 mb-4">
+            <Lock size={18} className="text-tchad-blue" />
+            Changer le mot de passe
+          </h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Modifiez le mot de passe de votre compte administrateur.
+          </p>
+
+          <div className="space-y-3">
+            <div>
+              <label className="label-field">Mot de passe actuel</label>
+              <div className="relative">
+                <input
+                  type={showPasswords ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="input-field pr-10"
+                  placeholder="Entrez votre mot de passe actuel"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswords(!showPasswords)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="label-field">Nouveau mot de passe</label>
+              <input
+                type={showPasswords ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="input-field"
+                placeholder="Minimum 6 caractères"
+              />
+            </div>
+            <div>
+              <label className="label-field">Confirmer le nouveau mot de passe</label>
+              <input
+                type={showPasswords ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="input-field"
+                placeholder="Répétez le nouveau mot de passe"
+              />
+            </div>
+            <button
+              onClick={async () => {
+                if (newPassword.length < 6) {
+                  showMsg('error', 'Le mot de passe doit contenir au moins 6 caractères')
+                  return
+                }
+                if (newPassword !== confirmPassword) {
+                  showMsg('error', 'Les mots de passe ne correspondent pas')
+                  return
+                }
+                if (!currentPassword) {
+                  showMsg('error', 'Entrez votre mot de passe actuel')
+                  return
+                }
+                setSavingPassword(true)
+                const res = await fetch('/api/change-password', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ currentPassword, newPassword }),
+                })
+                const data = await res.json()
+                if (res.ok) {
+                  showMsg('success', 'Mot de passe modifié avec succès')
+                  setCurrentPassword('')
+                  setNewPassword('')
+                  setConfirmPassword('')
+                } else {
+                  showMsg('error', data.error || 'Erreur lors du changement de mot de passe')
+                }
+                setSavingPassword(false)
+              }}
+              disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50"
+            >
+              <Lock size={16} />
+              {savingPassword ? 'Modification...' : 'Changer le mot de passe'}
+            </button>
           </div>
         </div>
       </main>
