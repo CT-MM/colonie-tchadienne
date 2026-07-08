@@ -350,8 +350,6 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
       return
     }
     setBroadcastIndex(next)
-    const c = filteredBroadcastMembers[next]
-    sendGroupLink(c.telephone!, c.prenom, c.id)
   }
 
   const clearFilters = () => {
