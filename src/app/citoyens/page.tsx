@@ -344,6 +344,7 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
   }
 
   const skipCurrent = () => {
+    setBroadcastSent(prev => new Set(prev).add(broadcastIndex))
     const next = broadcastIndex + 1
     if (next >= filteredBroadcastMembers.length) {
       setBroadcastIndex(-2)
