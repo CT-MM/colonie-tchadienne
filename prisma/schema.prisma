@@ -87,6 +87,9 @@ model Citoyen {
   // Code PIN 6 chiffres pour le portail citoyen
   pin              String?
 
+  // WhatsApp groupe
+  groupeInvite     Boolean  @default(false)
+
   // Notes
   observations     String?
 

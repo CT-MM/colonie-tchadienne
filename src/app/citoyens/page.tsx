@@ -28,6 +28,7 @@ interface Citoyen {
   familleAuGabon?: boolean
   estEmploye: boolean
   photo?: string
+  groupeInvite?: boolean
   createdAt: string
 }
 
@@ -61,6 +62,7 @@ function CitoyensContent() {
   const [copied, setCopied] = useState(false)
   const [broadcastIndex, setBroadcastIndex] = useState(-1)
   const [broadcastSent, setBroadcastSent] = useState<Set<number>>(new Set())
+  const [skipInvited, setSkipInvited] = useState(true)
 
   const membresSmartFilters: SmartFilter[] = [
     { label: 'Membres sans carte de séjour', description: 'Tous les membres n\'ayant pas de carte de séjour', params: { statut: '', carteColonie: '', carteSejour: 'Non' } },
@@ -282,11 +284,20 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
     return num
   }
 
-  const sendGroupLink = (tel: string, prenom: string) => {
+  const sendGroupLink = (tel: string, prenom: string, citoyenId?: string) => {
     if (!groupLink || !tel) return
     const phone = formatPhone(tel)
     const msg = `Bonjour ${prenom}, bienvenue dans la Colonie Tchadienne de la Lebombi-Leyou ! Rejoignez notre groupe ici : ${groupLink}`
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+    if (citoyenId) {
+      fetch(`/api/citoyens/${citoyenId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupeInvite: true }),
+      })
+      setCitoyens(prev => prev.map(c => c.id === citoyenId ? { ...c, groupeInvite: true } : c))
+      setBroadcastMembers(prev => prev.map(c => c.id === citoyenId ? { ...c, groupeInvite: true } : c))
+    }
   }
 
   const openBroadcast = async () => {
@@ -294,7 +305,6 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
     setBroadcastIndex(-1)
     setBroadcastSent(new Set())
     setCopied(false)
-    if (broadcastMembers.length > 0) return
     setLoadingBroadcast(true)
     const res = await fetch('/api/citoyens?limit=5000')
     const data = await res.json()
@@ -302,8 +312,14 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
     setLoadingBroadcast(false)
   }
 
+  const filteredBroadcastMembers = skipInvited
+    ? broadcastMembers.filter(c => !c.groupeInvite)
+    : broadcastMembers
+
+  const invitedCount = broadcastMembers.filter(c => c.groupeInvite).length
+
   const copyAllNumbers = () => {
-    const numbers = broadcastMembers.map(c => '+' + formatPhone(c.telephone!)).join('\n')
+    const numbers = filteredBroadcastMembers.map(c => '+' + formatPhone(c.telephone!)).join('\n')
     navigator.clipboard.writeText(numbers)
     setCopied(true)
     setTimeout(() => setCopied(false), 3000)
@@ -311,20 +327,31 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
 
   const startSequentialSend = () => {
     setBroadcastIndex(0)
-    const c = broadcastMembers[0]
-    if (c) sendGroupLink(c.telephone!, c.prenom)
+    const c = filteredBroadcastMembers[0]
+    if (c) sendGroupLink(c.telephone!, c.prenom, c.id)
   }
 
   const sendNext = () => {
     setBroadcastSent(prev => new Set(prev).add(broadcastIndex))
     const next = broadcastIndex + 1
-    if (next >= broadcastMembers.length) {
+    if (next >= filteredBroadcastMembers.length) {
       setBroadcastIndex(-2)
       return
     }
     setBroadcastIndex(next)
-    const c = broadcastMembers[next]
-    sendGroupLink(c.telephone!, c.prenom)
+    const c = filteredBroadcastMembers[next]
+    sendGroupLink(c.telephone!, c.prenom, c.id)
+  }
+
+  const skipCurrent = () => {
+    const next = broadcastIndex + 1
+    if (next >= filteredBroadcastMembers.length) {
+      setBroadcastIndex(-2)
+      return
+    }
+    setBroadcastIndex(next)
+    const c = filteredBroadcastMembers[next]
+    sendGroupLink(c.telephone!, c.prenom, c.id)
   }
 
   const clearFilters = () => {
@@ -616,11 +643,11 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                           </Link>
                           {isAdmin && groupLink && c.telephone && (
                             <button
-                              onClick={() => sendGroupLink(c.telephone!, c.prenom)}
-                              className="p-2 hover:bg-green-50 rounded-lg text-green-600 transition-colors"
-                              title="Envoyer le lien du groupe"
+                              onClick={() => sendGroupLink(c.telephone!, c.prenom, c.id)}
+                              className={`p-2 rounded-lg transition-colors ${c.groupeInvite ? 'text-green-300 hover:bg-green-50' : 'text-green-600 hover:bg-green-50'}`}
+                              title={c.groupeInvite ? 'Déjà invité — Renvoyer le lien' : 'Envoyer le lien du groupe'}
                             >
-                              <Send size={16} />
+                              {c.groupeInvite ? <CheckCircle size={16} /> : <Send size={16} />}
                             </button>
                           )}
                           {isAdmin && (
@@ -680,7 +707,10 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                   Diffusion du lien du groupe
                 </h2>
                 <p className="text-sm text-gray-500">
-                  {loadingBroadcast ? 'Chargement des membres...' : `${broadcastMembers.length} membre${broadcastMembers.length > 1 ? 's' : ''} avec numéro de téléphone`}
+                  {loadingBroadcast ? 'Chargement des membres...' : `${filteredBroadcastMembers.length} membre${filteredBroadcastMembers.length > 1 ? 's' : ''} à contacter`}
+                  {!loadingBroadcast && invitedCount > 0 && skipInvited && (
+                    <span className="text-green-600"> ({invitedCount} déjà invité{invitedCount > 1 ? 's' : ''})</span>
+                  )}
                 </p>
               </div>
               <button onClick={() => setShowBroadcast(false)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -698,7 +728,7 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                   <CheckCircle size={32} className="text-green-600" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Diffusion terminée !</h3>
-                <p className="text-sm text-gray-500 mb-4">{broadcastSent.size} message{broadcastSent.size > 1 ? 's' : ''} envoyé{broadcastSent.size > 1 ? 's' : ''} sur {broadcastMembers.length}</p>
+                <p className="text-sm text-gray-500 mb-4">{broadcastSent.size} message{broadcastSent.size > 1 ? 's' : ''} envoyé{broadcastSent.size > 1 ? 's' : ''} sur {filteredBroadcastMembers.length}</p>
                 <button onClick={() => setShowBroadcast(false)} className="btn-primary">Fermer</button>
               </div>
             ) : broadcastIndex >= 0 ? (
@@ -707,18 +737,18 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-sm mb-2">
                     <span className="font-medium text-gray-700">Envoi en cours</span>
-                    <span className="text-green-600 font-bold">{broadcastSent.size + 1} / {broadcastMembers.length}</span>
+                    <span className="text-green-600 font-bold">{broadcastSent.size + 1} / {filteredBroadcastMembers.length}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-green-600 h-2 rounded-full transition-all" style={{ width: `${((broadcastSent.size + 1) / broadcastMembers.length) * 100}%` }} />
+                    <div className="bg-green-600 h-2 rounded-full transition-all" style={{ width: `${((broadcastSent.size + 1) / filteredBroadcastMembers.length) * 100}%` }} />
                   </div>
                 </div>
 
                 {/* Current member */}
                 <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-4">
                   <p className="text-xs text-green-600 font-medium mb-1">Membre actuel :</p>
-                  <p className="text-lg font-bold text-gray-900">{broadcastMembers[broadcastIndex]?.nom} {broadcastMembers[broadcastIndex]?.prenom}</p>
-                  <p className="text-sm text-gray-500">{broadcastMembers[broadcastIndex]?.telephone}</p>
+                  <p className="text-lg font-bold text-gray-900">{filteredBroadcastMembers[broadcastIndex]?.nom} {filteredBroadcastMembers[broadcastIndex]?.prenom}</p>
+                  <p className="text-sm text-gray-500">{filteredBroadcastMembers[broadcastIndex]?.telephone}</p>
                 </div>
 
                 <p className="text-xs text-gray-400 mb-4 text-center">
@@ -729,19 +759,39 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                   <button onClick={() => setShowBroadcast(false)} className="btn-secondary flex-1 text-sm">
                     Arrêter
                   </button>
-                  <button onClick={sendNext} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm">
+                  <button onClick={skipCurrent} className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg font-medium transition-colors text-sm">
                     <SkipForward size={16} />
-                    {broadcastSent.size + 1 >= broadcastMembers.length ? 'Terminer' : 'Suivant'}
+                    Passer
+                  </button>
+                  <button onClick={sendNext} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors text-sm">
+                    <Send size={16} />
+                    {broadcastSent.size + 1 >= filteredBroadcastMembers.length ? 'Terminer' : 'Suivant'}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="p-5">
+                {/* Skip toggle */}
+                {invitedCount > 0 && (
+                  <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4">
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">Sauter les déjà invités</p>
+                      <p className="text-xs text-blue-600">{invitedCount} membre{invitedCount > 1 ? 's' : ''} déjà invité{invitedCount > 1 ? 's' : ''}</p>
+                    </div>
+                    <button
+                      onClick={() => setSkipInvited(!skipInvited)}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${skipInvited ? 'bg-blue-600' : 'bg-gray-300'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${skipInvited ? 'translate-x-5' : ''}`} />
+                    </button>
+                  </div>
+                )}
+
                 {/* Option 1: Copy all numbers */}
                 <div className="bg-gray-50 rounded-xl p-4 mb-4">
                   <h3 className="text-sm font-semibold text-gray-700 mb-1">Option 1 — Copier tous les numéros</h3>
                   <p className="text-xs text-gray-500 mb-3">
-                    Copiez les numéros, ouvrez WhatsApp → Nouvelle diffusion → ajoutez les contacts, puis envoyez votre message à tous en une seule fois.
+                    Copiez les numéros, ouvrez WhatsApp &rarr; Nouvelle diffusion &rarr; ajoutez les contacts, puis envoyez votre message à tous en une seule fois.
                   </p>
                   <button
                     onClick={copyAllNumbers}
@@ -749,7 +799,7 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                       copied ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    {copied ? <><CheckCircle size={16} /> {broadcastMembers.length} numéros copiés !</> : <><Copy size={16} /> Copier les {broadcastMembers.length} numéros</>}
+                    {copied ? <><CheckCircle size={16} /> {filteredBroadcastMembers.length} numéros copiés !</> : <><Copy size={16} /> Copier les {filteredBroadcastMembers.length} numéros</>}
                   </button>
                 </div>
 
@@ -761,9 +811,10 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
                   </p>
                   <button
                     onClick={startSequentialSend}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full justify-center bg-green-600 hover:bg-green-700 text-white"
+                    disabled={filteredBroadcastMembers.length === 0}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full justify-center bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
                   >
-                    <Send size={16} /> Commencer l'envoi ({broadcastMembers.length} membres)
+                    <Send size={16} /> Commencer l'envoi ({filteredBroadcastMembers.length} membres)
                   </button>
                 </div>
               </div>
