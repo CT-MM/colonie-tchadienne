@@ -35,12 +35,12 @@ export async function PUT(req: NextRequest) {
   const hashed = await hash(newPassword, 10)
   await prisma.user.update({
     where: { id: userId },
-    data: {
-      password: hashed,
-      sessionVersion: { increment: 1 },
-    },
+    data: { password: hashed },
   })
-
+  await prisma.user.update({
+    where: { id: userId },
+    data: { sessionVersion: { increment: 1 } },
+  })
   await prisma.device.deleteMany({ where: { userId } })
 
   return NextResponse.json({ success: true, forceLogout: true })
