@@ -23,6 +23,26 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params
   const data = await req.json()
+
+  if (data.carteColonie === 'Ok' || data.carteColonie === 'Encours') {
+    const current = await prisma.citoyen.findUnique({ where: { id }, select: { carteColonie: true } })
+    if (current && current.carteColonie !== 'Ok' && current.carteColonie !== 'Encours') {
+      const existing = await prisma.contribution.findFirst({
+        where: { citoyenId: id, description: "Frais d'enregistrement" },
+      })
+      if (!existing) {
+        await prisma.contribution.create({
+          data: {
+            montant: 5000,
+            date: new Date().toISOString().split('T')[0],
+            description: "Frais d'enregistrement",
+            citoyenId: id,
+          },
+        })
+      }
+    }
+  }
+
   const citoyen = await prisma.citoyen.update({ where: { id }, data })
   return NextResponse.json(citoyen)
 }
