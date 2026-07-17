@@ -50,22 +50,38 @@ export default function BureauPage() {
     const catAr = catLabelAr[catLabel] || 'المكتب'
     const dateFr = new Date().toLocaleDateString('fr-FR')
     const dateAr = new Date().toLocaleDateString('ar-SA')
+    const fonctionAr: Record<string, string> = {
+      'Président': 'الرئيس', 'Vice-Président': 'نائب الرئيس',
+      'Secrétaire Général': 'الأمين العام', 'Secrétaire Général Adjoint': 'نائب الأمين العام',
+      'Trésorier': 'أمين الصندوق', 'Trésorier Adjoint': 'نائب أمين الصندوق',
+      'Commissaire aux comptes': 'مفتش الحسابات',
+      'Chargé de communication': 'مسؤول الاتصال', 'Chargé du service informatique': 'مسؤول تكنولوجيا المعلومات',
+      'Membre': 'عضو', 'Adjoint 1': 'النائب الأول', 'Adjoint 2': 'النائب الثاني',
+      'Conseiller Principal': 'المستشار الرئيسي', 'Conseiller': 'مستشار',
+      'Conseiller Juridique': 'مستشار قانوني',
+      'Conseiller aux Affaires Sociales': 'مستشار الشؤون الاجتماعية',
+      'Conseiller à la Jeunesse': 'مستشار شؤون الشباب',
+      'Conseiller aux Relations Extérieures': 'مستشار العلاقات الخارجية',
+    }
 
     const w = window.open('', '_blank')
     if (!w) return
-    w.document.write(`<html><head><meta charset="utf-8"><title>${catLabel} / ${catAr}</title><style>
+    w.document.write(`<html><head><meta charset="utf-8">
+      <link href="https://fonts.googleapis.com/css2?family=Madimi+One&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
+      <title>${catLabel} / ${catAr}</title><style>
       body{font-family:Arial,sans-serif;padding:30px;color:#1a1a1a}
       h1{color:#002664;border-bottom:3px solid #FECB00;padding-bottom:8px}
-      .ar{font-family:'Segoe UI','Arabic Typesetting',Tahoma,sans-serif;direction:rtl;text-align:right}
+      .ar{font-family:'Noto Naskh Arabic','Arabic Typesetting',Tahoma,sans-serif;direction:rtl;text-align:right}
       .dual{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap}
       table{width:100%;border-collapse:collapse;margin-top:16px}
       th{background:#002664;color:white;padding:10px;text-align:left;font-size:12px}
-      th .ar-th{display:block;font-size:11px;font-weight:normal;opacity:0.85;direction:rtl}
+      th .ar-th{display:block;font-family:'Noto Naskh Arabic',sans-serif;font-size:11px;font-weight:normal;opacity:0.85;direction:rtl}
       td{padding:8px 10px;border-bottom:1px solid #eee;font-size:13px;vertical-align:middle}
       tr:nth-child(even){background:#f8f9fa}
       .photo{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb}
       .no-photo{width:40px;height:40px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-weight:bold;font-size:14px}
       .footer{margin-top:20px;text-align:center;color:#999;font-size:11px}
+      .fonction-ar{font-family:'Noto Naskh Arabic',sans-serif;direction:rtl;color:#666;font-size:12px;margin-top:2px}
     </style></head><body>
       <div class="dual"><h1>🇹🇩 ${catLabel} — Colonie Tchadienne</h1><h1 class="ar">${catAr} — الجالية التشادية</h1></div>
       <div class="dual">
@@ -73,7 +89,10 @@ export default function BureauPage() {
         <p class="ar" style="color:#666;font-size:13px">تاريخ الإصدار ${dateAr} — ${target.length} عضو</p>
       </div>
       <table><thead><tr><th>N°<span class="ar-th">رقم</span></th><th>Photo<span class="ar-th">صورة</span></th><th>Nom & Prénom<span class="ar-th">الاسم واللقب</span></th><th>Fonction<span class="ar-th">الوظيفة</span></th><th>Téléphone<span class="ar-th">الهاتف</span></th><th>Ville<span class="ar-th">المدينة</span></th></tr></thead><tbody>
-      ${target.map((m, i) => `<tr><td>${i + 1}</td><td>${m.citoyen.photo ? `<img src="${m.citoyen.photo}" class="photo"/>` : `<div class="no-photo">${m.citoyen.prenom[0]}${m.citoyen.nom[0]}</div>`}</td><td><strong>${m.citoyen.nom} ${m.citoyen.prenom}</strong></td><td>${m.fonction}</td><td>${m.citoyen.telephone || '—'}</td><td>${m.citoyen.ville}</td></tr>`).join('')}
+      ${target.map((m, i) => {
+        const fAr = fonctionAr[m.fonction] || m.fonction
+        return `<tr><td>${i + 1}</td><td>${m.citoyen.photo ? `<img src="${m.citoyen.photo}" class="photo"/>` : `<div class="no-photo">${m.citoyen.prenom[0]}${m.citoyen.nom[0]}</div>`}</td><td><strong>${m.citoyen.nom} ${m.citoyen.prenom}</strong></td><td>${m.fonction}<div class="fonction-ar">${fAr}</div></td><td>${m.citoyen.telephone || '—'}</td><td>${m.citoyen.ville}</td></tr>`
+      }).join('')}
       </tbody></table>
       <div class="footer"><div>Colonie Tchadienne de la Lebombi-Leyou — Document généré automatiquement</div><div class="ar">الجالية التشادية في لبومبي-ليو — وثيقة صادرة تلقائيًا</div></div>
     </body></html>`)
