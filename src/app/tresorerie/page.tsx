@@ -144,10 +144,16 @@ export default function TresoreriePage() {
       ? `du ${new Date(rapportDateDebut).toLocaleDateString('fr-FR')} au ${new Date(rapportDateFin).toLocaleDateString('fr-FR')}`
       : 'Toutes périodes'
 
-    let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rapport Trésorerie</title>
+    const periodeAr = rapportDateDebut && rapportDateFin
+      ? `من ${new Date(rapportDateDebut).toLocaleDateString('ar')} إلى ${new Date(rapportDateFin).toLocaleDateString('ar')}`
+      : 'جميع الفترات'
+
+    let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rapport Trésorerie / تقرير الخزينة</title>
     <style>
       body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
       h1 { color: #002664; border-bottom: 3px solid #FECB00; padding-bottom: 10px; }
+      .ar { font-family: 'Segoe UI', 'Arabic Typesetting', Tahoma, sans-serif; direction: rtl; text-align: right; color: #555; }
+      h1 .ar, h2 .ar { color: #002664; }
       h2 { color: #002664; margin-top: 30px; }
       table { width: 100%; border-collapse: collapse; margin: 15px 0; }
       th { background: #002664; color: white; padding: 10px; text-align: left; }
@@ -160,38 +166,45 @@ export default function TresoreriePage() {
       .positif { background: #d4edda; color: #155724; }
       .negatif { background: #f8d7da; color: #721c24; }
       .footer { margin-top: 40px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #ddd; padding-top: 15px; }
+      .dual { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
       @media print { body { padding: 20px; } }
     </style></head><body>
-    <h1>RAPPORT DE TRÉSORERIE — COLONIE TCHADIENNE</h1>
-    <p><strong>Période :</strong> ${periode}</p>
-    <p><strong>Généré le :</strong> ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>`
+    <h1 class="dual"><span>RAPPORT DE TRÉSORERIE — COLONIE TCHADIENNE</span><span class="ar">تقرير الخزينة — الجالية التشادية</span></h1>
+    <div class="dual">
+      <p><strong>Période :</strong> ${periode}</p>
+      <p class="ar"><strong>الفترة:</strong> ${periodeAr}</p>
+    </div>
+    <div class="dual">
+      <p><strong>Généré le :</strong> ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+      <p class="ar"><strong>تاريخ الإصدار:</strong> ${new Date().toLocaleDateString('ar')}</p>
+    </div>`
 
-    html += `<h2>CONTRIBUTIONS (${contribs.count} entrées)</h2>`
+    html += `<h2 class="dual"><span>CONTRIBUTIONS (${contribs.count} entrées)</span><span class="ar">المساهمات (${contribs.count} إدخالات)</span></h2>`
     if (contribs.data.length > 0) {
-      html += `<table><tr><th>Date</th><th>Photo</th><th>Membre</th><th>Ville</th><th>Montant</th><th>Description</th></tr>`
+      html += `<table><tr><th>Date / التاريخ</th><th>Photo / الصورة</th><th>Membre / العضو</th><th>Ville / المدينة</th><th>Montant / المبلغ</th><th>Description / الوصف</th></tr>`
       for (const c of contribs.data) {
         const photo = c.citoyen.photo ? `<img src="${c.citoyen.photo}" class="photo"/>` : `<div class="no-photo">${c.citoyen.prenom[0]}${c.citoyen.nom[0]}</div>`
         html += `<tr><td>${new Date(c.date).toLocaleDateString('fr-FR')}</td><td>${photo}</td><td><strong>${c.citoyen.nom} ${c.citoyen.prenom}</strong></td><td>${c.citoyen.ville}</td><td>${formatMontant(c.montant)}</td><td>${c.description || '-'}</td></tr>`
       }
-      html += `</table><p class="total">Total contributions : ${formatMontant(contribs.total)}</p>`
+      html += `</table><p class="total dual"><span>Total contributions : ${formatMontant(contribs.total)}</span><span class="ar">إجمالي المساهمات : ${formatMontant(contribs.total)}</span></p>`
     } else {
-      html += `<p>Aucune contribution sur cette période.</p>`
+      html += `<p class="dual"><span>Aucune contribution sur cette période.</span><span class="ar">لا توجد مساهمات في هذه الفترة.</span></p>`
     }
 
-    html += `<h2>DÉPENSES (${deps.count} sorties)</h2>`
+    html += `<h2 class="dual"><span>DÉPENSES (${deps.count} sorties)</span><span class="ar">المصروفات (${deps.count} مخرجات)</span></h2>`
     if (deps.data.length > 0) {
-      html += `<table><tr><th>Date</th><th>Motif</th><th>Montant</th><th>Description</th></tr>`
+      html += `<table><tr><th>Date / التاريخ</th><th>Motif / السبب</th><th>Montant / المبلغ</th><th>Description / الوصف</th></tr>`
       for (const d of deps.data) {
         html += `<tr><td>${new Date(d.date).toLocaleDateString('fr-FR')}</td><td>${d.motif}</td><td>${formatMontant(d.montant)}</td><td>${d.description || '-'}</td></tr>`
       }
-      html += `</table><p class="total">Total dépenses : ${formatMontant(deps.total)}</p>`
+      html += `</table><p class="total dual"><span>Total dépenses : ${formatMontant(deps.total)}</span><span class="ar">إجمالي المصروفات : ${formatMontant(deps.total)}</span></p>`
     } else {
-      html += `<p>Aucune dépense sur cette période.</p>`
+      html += `<p class="dual"><span>Aucune dépense sur cette période.</span><span class="ar">لا توجد مصروفات في هذه الفترة.</span></p>`
     }
 
     const solde = contribs.total - deps.total
-    html += `<div class="solde ${solde >= 0 ? 'positif' : 'negatif'}">SOLDE : ${formatMontant(solde)}</div>`
-    html += `<div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Rapport généré automatiquement</div></body></html>`
+    html += `<div class="solde ${solde >= 0 ? 'positif' : 'negatif'}">SOLDE / الرصيد : ${formatMontant(solde)}</div>`
+    html += `<div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Rapport généré automatiquement<br/><span class="ar">الجالية التشادية في لبومبي ليو — تقرير تم إنشاؤه تلقائيًا</span></div></body></html>`
 
     const w = window.open('', '_blank')
     if (w) {
