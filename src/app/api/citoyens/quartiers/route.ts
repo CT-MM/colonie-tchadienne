@@ -18,18 +18,25 @@ export async function GET(req: NextRequest) {
     select: { quartier: true, ville: true },
   })
 
+  const normalize = (q: string) =>
+    q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ')
+
   const quartiersByVille: Record<string, string[]> = {}
+  const seen: Record<string, Set<string>> = {}
+
   for (const c of citoyens) {
     if (!c.quartier) continue
     const v = c.ville
-    if (!quartiersByVille[v]) quartiersByVille[v] = []
-    if (!quartiersByVille[v].includes(c.quartier)) {
-      quartiersByVille[v].push(c.quartier)
+    if (!quartiersByVille[v]) { quartiersByVille[v] = []; seen[v] = new Set() }
+    const key = normalize(c.quartier)
+    if (!seen[v].has(key)) {
+      seen[v].add(key)
+      quartiersByVille[v].push(c.quartier.trim())
     }
   }
 
   for (const v in quartiersByVille) {
-    quartiersByVille[v].sort()
+    quartiersByVille[v].sort((a, b) => normalize(a).localeCompare(normalize(b)))
   }
 
   return NextResponse.json(quartiersByVille)
