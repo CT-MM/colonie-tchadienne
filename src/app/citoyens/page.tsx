@@ -193,12 +193,10 @@ function CitoyensContent() {
       </tr>
     `).join('')
 
-    const todayAr = new Date().toLocaleDateString('ar', { day: '2-digit', month: 'long', year: 'numeric' })
-
     win.document.write(`<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8"/>
-<title>Liste des membres / قائمة الأعضاء - Colonie Tchadienne</title>
+<title>Liste des membres - Colonie Tchadienne</title>
 <style>
   @page { size: A4 landscape; margin: 12mm; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -209,7 +207,6 @@ function CitoyensContent() {
   .header .sub { opacity:0.7; font-size:13px; margin-top:2px; }
   .header .right { text-align:right; }
   .header .count { font-size:28px; font-weight:800; color:#FECB00; }
-  .ar { font-family: 'Segoe UI', 'Arabic Typesetting', Tahoma, sans-serif; direction: rtl; }
   .filters { font-size:11px; color:#666; margin-bottom:10px; padding:0 4px; }
   table { width:100%; border-collapse:collapse; }
   thead th { background:#f8fafc; padding:10px 12px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; border-bottom:2px solid #e2e8f0; }
@@ -231,30 +228,29 @@ function CitoyensContent() {
     </svg>
     <div>
       <h1>Colonie Tchadienne — Lebombi-Leyou</h1>
-      <h1 class="ar" style="font-size:18px;margin-top:4px">الجالية التشادية — لبومبي ليو</h1>
-      <div class="sub">Liste des membres au ${today} / <span class="ar">قائمة الأعضاء بتاريخ ${todayAr}</span></div>
+      <div class="sub">Liste des membres au ${today}</div>
     </div>
   </div>
   <div class="right">
     <div class="count">${sorted.length}</div>
-    <div style="font-size:11px;opacity:0.7">membres / أعضاء</div>
+    <div style="font-size:11px;opacity:0.7">membres</div>
   </div>
 </div>
 ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
 <table>
   <thead>
     <tr>
-      <th style="width:40px;text-align:center">N° / رقم</th>
-      <th style="width:65px;text-align:center">Photo / صورة</th>
-      <th>Nom & Prénom / الاسم</th>
-      <th style="width:130px">Téléphone / الهاتف</th>
-      <th style="width:120px">N° Carte / رقم البطاقة</th>
-      <th style="width:90px;text-align:center">Carte / بطاقة</th>
+      <th style="width:40px;text-align:center">N°</th>
+      <th style="width:65px;text-align:center">Photo</th>
+      <th>Nom & Prénom</th>
+      <th style="width:130px">Téléphone</th>
+      <th style="width:120px">N° Carte</th>
+      <th style="width:90px;text-align:center">Carte</th>
     </tr>
   </thead>
   <tbody>${rows}</tbody>
 </table>
-<div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Document généré le ${today}<br/><span class="ar">الجالية التشادية في لبومبي ليو — وثيقة صادرة بتاريخ ${todayAr}</span></div>
+<div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Document généré le ${today}</div>
 <script>
   window.onload = function() { setTimeout(function() { window.print(); }, 500); }
 </script>

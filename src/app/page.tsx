@@ -93,19 +93,12 @@ export default function Dashboard() {
 
   const handleExportListe = (type: 'reguliers' | 'irreguliers') => {
     const titre = type === 'reguliers' ? 'PERSONNES EN SITUATION RÉGULIÈRE' : 'PERSONNES EN SITUATION IRRÉGULIÈRE'
-    const titreAr = type === 'reguliers' ? 'الأشخاص في وضع نظامي' : 'الأشخاص في وضع غير نظامي'
-    const today = new Date()
-    const dateFr = today.toLocaleDateString('fr-FR')
-    const dateAr = today.toLocaleDateString('ar-SA')
-    let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titre} / ${titreAr}</title>
+    let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titre}</title>
     <style>
       body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
       h1 { color: #002664; border-bottom: 3px solid #FECB00; padding-bottom: 10px; }
-      .ar { font-family: 'Segoe UI', 'Arabic Typesetting', Tahoma, sans-serif; direction: rtl; text-align: right; }
-      .dual { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; }
       table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-      th { background: #002664; color: white; padding: 10px; text-align: left; font-size: 12px; }
-      th .ar-th { display: block; font-size: 11px; font-weight: normal; opacity: 0.85; direction: rtl; }
+      th { background: #002664; color: white; padding: 10px; text-align: left; }
       td { padding: 8px 10px; border-bottom: 1px solid #ddd; vertical-align: middle; }
       tr:nth-child(even) { background: #f9f9f9; }
       .photo{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb}
@@ -114,17 +107,17 @@ export default function Dashboard() {
       .footer { margin-top: 40px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #ddd; padding-top: 15px; }
       @media print { body { padding: 20px; } }
     </style></head><body>
-    <div class="dual"><h1>${titre}</h1><h1 class="ar">${titreAr}</h1></div>
-    <div class="dual"><p><strong>Date :</strong> ${dateFr}</p><p class="ar"><strong>التاريخ :</strong> ${dateAr}</p></div>
-    <div class="dual"><p class="count">Total : ${listeData.length} personnes</p><p class="count ar">المجموع : ${listeData.length} شخص</p></div>
-    <table><tr><th>N°<span class="ar-th">رقم</span></th><th>Photo<span class="ar-th">صورة</span></th><th>Nom & Prénom<span class="ar-th">الاسم واللقب</span></th><th>Sexe<span class="ar-th">الجنس</span></th><th>Ville<span class="ar-th">المدينة</span></th><th>Téléphone<span class="ar-th">الهاتف</span></th><th>Profession<span class="ar-th">المهنة</span></th><th>Carte séjour<span class="ar-th">بطاقة الإقامة</span></th></tr>`
+    <h1>${titre}</h1>
+    <p><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+    <p class="count">Total : ${listeData.length} personnes</p>
+    <table><tr><th>N°</th><th>Photo</th><th>Nom & Prénom</th><th>Sexe</th><th>Ville</th><th>Téléphone</th><th>Profession</th><th>Carte séjour</th></tr>`
 
     listeData.forEach((c, i) => {
       const photo = c.photo ? `<img src="${c.photo}" class="photo"/>` : `<div class="no-photo">${c.prenom[0]}${c.nom[0]}</div>`
       html += `<tr><td>${i + 1}</td><td>${photo}</td><td><strong>${c.nom} ${c.prenom}</strong></td><td>${c.sexe === 'M' ? 'Homme' : 'Femme'}</td><td>${c.ville}</td><td>${c.telephone || '-'}</td><td>${c.profession || '-'}</td><td>${c.carteSejour}</td></tr>`
     })
 
-    html += `</table><div class="footer"><div>Colonie Tchadienne de la Lebombi-Leyou</div><div class="ar">الجالية التشادية في لوبومبي-ليو</div></div></body></html>`
+    html += `</table><div class="footer">Colonie Tchadienne de la Lebombi-Leyou</div></body></html>`
 
     const w = window.open('', '_blank')
     if (w) { w.document.write(html); w.document.close() }

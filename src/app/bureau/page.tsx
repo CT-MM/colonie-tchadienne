@@ -46,26 +46,36 @@ export default function BureauPage() {
     const allMembres = [...getMembresForCat('executif'), ...getMembresForCat('religieux'), ...getMembresForCat('conseiller')]
     const target = filterCat ? allMembres.filter(m => (filterCat === 'executif' ? (!m.categorie || m.categorie === 'executif') : m.categorie === filterCat)) : allMembres
     const catLabel = filterCat ? CATEGORIES.find(c => c.value === filterCat)?.label || 'Bureau' : 'Bureau complet'
+    const catLabelAr: Record<string, string> = { 'Bureau exécutif': 'المكتب التنفيذي', 'Commission religieuse': 'اللجنة الدينية', 'Conseillers': 'المستشارون', 'Bureau complet': 'المكتب الكامل' }
+    const catAr = catLabelAr[catLabel] || 'المكتب'
+    const dateFr = new Date().toLocaleDateString('fr-FR')
+    const dateAr = new Date().toLocaleDateString('ar-SA')
 
     const w = window.open('', '_blank')
     if (!w) return
-    w.document.write(`<html><head><title>Liste ${catLabel}</title><style>
+    w.document.write(`<html><head><meta charset="utf-8"><title>${catLabel} / ${catAr}</title><style>
       body{font-family:Arial,sans-serif;padding:30px;color:#1a1a1a}
       h1{color:#002664;border-bottom:3px solid #FECB00;padding-bottom:8px}
+      .ar{font-family:'Segoe UI','Arabic Typesetting',Tahoma,sans-serif;direction:rtl;text-align:right}
+      .dual{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap}
       table{width:100%;border-collapse:collapse;margin-top:16px}
-      th{background:#002664;color:white;padding:10px;text-align:left;font-size:13px}
+      th{background:#002664;color:white;padding:10px;text-align:left;font-size:12px}
+      th .ar-th{display:block;font-size:11px;font-weight:normal;opacity:0.85;direction:rtl}
       td{padding:8px 10px;border-bottom:1px solid #eee;font-size:13px;vertical-align:middle}
       tr:nth-child(even){background:#f8f9fa}
       .photo{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb}
       .no-photo{width:40px;height:40px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-weight:bold;font-size:14px}
       .footer{margin-top:20px;text-align:center;color:#999;font-size:11px}
     </style></head><body>
-      <h1>🇹🇩 ${catLabel} — Colonie Tchadienne de la Lebombi-Leyou</h1>
-      <p style="color:#666;font-size:13px">Généré le ${new Date().toLocaleDateString('fr-FR')} — ${target.length} membre${target.length > 1 ? 's' : ''}</p>
-      <table><thead><tr><th>N°</th><th>Photo</th><th>Nom & Prénom</th><th>Fonction</th><th>Téléphone</th><th>Ville</th></tr></thead><tbody>
+      <div class="dual"><h1>🇹🇩 ${catLabel} — Colonie Tchadienne</h1><h1 class="ar">${catAr} — الجالية التشادية</h1></div>
+      <div class="dual">
+        <p style="color:#666;font-size:13px">Généré le ${dateFr} — ${target.length} membre${target.length > 1 ? 's' : ''}</p>
+        <p class="ar" style="color:#666;font-size:13px">تاريخ الإصدار ${dateAr} — ${target.length} عضو</p>
+      </div>
+      <table><thead><tr><th>N°<span class="ar-th">رقم</span></th><th>Photo<span class="ar-th">صورة</span></th><th>Nom & Prénom<span class="ar-th">الاسم واللقب</span></th><th>Fonction<span class="ar-th">الوظيفة</span></th><th>Téléphone<span class="ar-th">الهاتف</span></th><th>Ville<span class="ar-th">المدينة</span></th></tr></thead><tbody>
       ${target.map((m, i) => `<tr><td>${i + 1}</td><td>${m.citoyen.photo ? `<img src="${m.citoyen.photo}" class="photo"/>` : `<div class="no-photo">${m.citoyen.prenom[0]}${m.citoyen.nom[0]}</div>`}</td><td><strong>${m.citoyen.nom} ${m.citoyen.prenom}</strong></td><td>${m.fonction}</td><td>${m.citoyen.telephone || '—'}</td><td>${m.citoyen.ville}</td></tr>`).join('')}
       </tbody></table>
-      <div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Document généré automatiquement</div>
+      <div class="footer"><div>Colonie Tchadienne de la Lebombi-Leyou — Document généré automatiquement</div><div class="ar">الجالية التشادية في لبومبي-ليو — وثيقة صادرة تلقائيًا</div></div>
     </body></html>`)
     w.document.close()
     w.print()
