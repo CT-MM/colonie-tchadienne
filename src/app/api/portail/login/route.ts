@@ -32,23 +32,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Code PIN incorrect' }, { status: 401 })
   }
 
-  const bureau = await prisma.membreBureau.findMany({
-    include: {
-      citoyen: {
-        select: { nom: true, prenom: true, telephone: true, photo: true, ville: true, email: true },
+  const [bureau, evenements, charte, settings] = await Promise.all([
+    prisma.membreBureau.findMany({
+      include: {
+        citoyen: {
+          select: { nom: true, prenom: true, telephone: true, photo: true, ville: true, email: true },
+        },
       },
-    },
-    orderBy: { ordre: 'asc' },
-  })
-
-  const evenements = await prisma.evenement.findMany({
-    where: { date: { gte: new Date().toISOString().split('T')[0] } },
-    orderBy: { date: 'asc' },
-    take: 10,
-  })
-
-  const charte = await prisma.charte.findFirst()
-  const settings = await prisma.setting.findUnique({ where: { key: 'group_link' } })
+      orderBy: { ordre: 'asc' },
+    }),
+    prisma.evenement.findMany({
+      where: { date: { gte: new Date().toISOString().split('T')[0] } },
+      orderBy: { date: 'asc' },
+      take: 10,
+    }),
+    prisma.charte.findFirst(),
+    prisma.setting.findUnique({ where: { key: 'group_link' } }),
+  ])
   const totalContrib = citoyen.contributions.reduce((s, c) => s + c.montant, 0)
 
   return NextResponse.json({

@@ -142,7 +142,7 @@ export default function BureauPage() {
 
   const fetchCitoyens = useCallback(async () => {
     if (citoyens.length > 0) return
-    const citRes = await fetch('/api/citoyens?limit=2000')
+    const citRes = await fetch('/api/citoyens?limit=2000&fields=minimal')
     const citData = await citRes.json()
     setCitoyens(citData.citoyens || [])
   }, [citoyens.length])

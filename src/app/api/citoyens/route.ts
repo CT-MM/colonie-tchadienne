@@ -34,20 +34,40 @@ export async function GET(req: NextRequest) {
   if (familleAuGabon) where.familleAuGabon = familleAuGabon === 'true'
   if (carteColonie) where.carteColonie = carteColonie
 
+  const fields = searchParams.get('fields')
+  const paging = { where, orderBy: { createdAt: 'desc' as const }, skip: (page - 1) * limit, take: limit }
+
+  let citoyensData: any[]
+
+  if (fields === 'minimal') {
+    const [rows, t] = await Promise.all([
+      prisma.citoyen.findMany({ ...paging, select: { id: true, nom: true, prenom: true, telephone: true, groupeInvite: true } }),
+      prisma.citoyen.count({ where }),
+    ])
+    return NextResponse.json({ citoyens: rows, total: t, pages: Math.ceil(t / limit) })
+  }
+
+  if (fields === 'light') {
+    const [rows, t] = await Promise.all([
+      prisma.citoyen.findMany({
+        ...paging,
+        select: { id: true, nom: true, prenom: true, sexe: true, ville: true, quartier: true, telephone: true, profession: true, numeroCarte: true, carteColonie: true, carteSejour: true, situationRegularite: true, situationFamiliale: true, familleAuGabon: true, groupeInvite: true, createdAt: true, photo: true, contributions: { select: { id: true }, take: 1 } },
+      }),
+      prisma.citoyen.count({ where }),
+    ])
+    citoyensData = rows.map(({ contributions, ...rest }: any) => ({ ...rest, aContribue: contributions?.length > 0 }))
+    return NextResponse.json({ citoyens: citoyensData, total: t, pages: Math.ceil(t / limit) })
+  }
+
   const [citoyens, total] = await Promise.all([
     prisma.citoyen.findMany({
-      where,
-      include: {
-        _count: { select: { contributions: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
+      ...paging,
+      include: { _count: { select: { contributions: true } } },
     }),
     prisma.citoyen.count({ where }),
   ])
 
-  const citoyensData = citoyens.map(({ _count, ...c }) => ({
+  citoyensData = citoyens.map(({ _count, ...c }: any) => ({
     ...c,
     aContribue: _count.contributions > 0,
   }))

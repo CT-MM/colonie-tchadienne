@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const [contributions, total] = await Promise.all([
     prisma.contribution.findMany({
       where,
-      include: { citoyen: { select: { nom: true, prenom: true, ville: true, photo: true } } },
+      include: { citoyen: { select: { nom: true, prenom: true, ville: true } } },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,

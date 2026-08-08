@@ -20,14 +20,16 @@ export async function GET(req: NextRequest) {
       if (dateFin) where.date.lte = dateFin
     }
 
-    const contributions = await prisma.contribution.findMany({
-      where,
-      include: { citoyen: { select: { nom: true, prenom: true, ville: true, telephone: true, photo: true } } },
-      orderBy: { date: 'asc' },
-    })
+    const [contributions, agg] = await Promise.all([
+      prisma.contribution.findMany({
+        where,
+        include: { citoyen: { select: { nom: true, prenom: true, ville: true, telephone: true, photo: true } } },
+        orderBy: { date: 'asc' },
+      }),
+      prisma.contribution.aggregate({ where, _sum: { montant: true } }),
+    ])
 
-    const total = contributions.reduce((s, c) => s + c.montant, 0)
-    return NextResponse.json({ data: contributions, total, count: contributions.length })
+    return NextResponse.json({ data: contributions, total: agg._sum.montant || 0, count: contributions.length })
   }
 
   if (type === 'depenses') {
@@ -38,14 +40,19 @@ export async function GET(req: NextRequest) {
       if (dateFin) where.date.lte = dateFin
     }
 
-    const depenses = await prisma.depense.findMany({ where, orderBy: { date: 'asc' } })
-    const total = depenses.reduce((s, d) => s + d.montant, 0)
-    return NextResponse.json({ data: depenses, total, count: depenses.length })
+    const [depenses, depAgg] = await Promise.all([
+      prisma.depense.findMany({ where, orderBy: { date: 'asc' } }),
+      prisma.depense.aggregate({ where, _sum: { montant: true } }),
+    ])
+    return NextResponse.json({ data: depenses, total: depAgg._sum.montant || 0, count: depenses.length })
   }
+
+  const selectListe = { id: true, nom: true, prenom: true, sexe: true, ville: true, telephone: true, profession: true, carteSejour: true, photo: true }
 
   if (type === 'reguliers') {
     const citoyens = await prisma.citoyen.findMany({
       where: { situationRegularite: 'Régulier' },
+      select: selectListe,
       orderBy: { nom: 'asc' },
     })
     return NextResponse.json({ data: citoyens, count: citoyens.length })
@@ -54,6 +61,7 @@ export async function GET(req: NextRequest) {
   if (type === 'irreguliers') {
     const citoyens = await prisma.citoyen.findMany({
       where: { situationRegularite: { not: 'Régulier' } },
+      select: selectListe,
       orderBy: { nom: 'asc' },
     })
     return NextResponse.json({ data: citoyens, count: citoyens.length })

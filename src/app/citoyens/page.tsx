@@ -306,7 +306,7 @@ ${filterDesc ? `<div class="filters">Filtres: ${filterDesc}</div>` : ''}
     setBroadcastSent(new Set())
     setCopied(false)
     setLoadingBroadcast(true)
-    const res = await fetch('/api/citoyens?limit=5000')
+    const res = await fetch('/api/citoyens?limit=5000&fields=minimal')
     const data = await res.json()
     setBroadcastMembers((data.citoyens || []).filter((c: Citoyen) => c.telephone))
     setLoadingBroadcast(false)

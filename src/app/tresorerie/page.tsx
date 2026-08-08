@@ -49,9 +49,9 @@ export default function TresoreriePage() {
 
   const fetchData = useCallback(async () => {
     const [contribRes, depRes, citRes] = await Promise.all([
-      fetch('/api/contributions?limit=10000'),
-      fetch('/api/depenses?limit=10000'),
-      fetch('/api/citoyens?limit=2000'),
+      fetch('/api/contributions?limit=100'),
+      fetch('/api/depenses?limit=100'),
+      fetch('/api/citoyens?limit=200&fields=light'),
     ])
     const contribData = await contribRes.json()
     const depData = await depRes.json()
