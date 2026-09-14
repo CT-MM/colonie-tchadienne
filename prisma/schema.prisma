@@ -98,6 +98,7 @@ model Citoyen {
 
   contributions    Contribution[]
   membreBureau     MembreBureau?
+  delegueZones     DelegueZone[]
 }
 
 model Contribution {
@@ -149,4 +150,25 @@ model Charte {
 model Setting {
   key   String @id
   value String
+}
+
+model Zone {
+  id        String   @id @default(cuid())
+  nom       String
+  quartiers String   // JSON array of quartier names
+  ordre     Int      @default(0)
+  createdAt DateTime @default(now())
+  delegues  DelegueZone[]
+}
+
+model DelegueZone {
+  id        String   @id @default(cuid())
+  role      String   @default("Délégué")
+  zoneId    String
+  zone      Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  citoyenId String
+  citoyen   Citoyen  @relation(fields: [citoyenId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([zoneId, citoyenId])
 }

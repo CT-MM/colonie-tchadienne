@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
-import { Users, Plus, Search, Trash2, User, X, Crown, Phone, MapPin, BookOpen, Scale, ChevronUp, ChevronDown, Download, FileText, Sparkles, GitBranch } from 'lucide-react'
+import { Users, Plus, Search, Trash2, User, X, Crown, Phone, MapPin, BookOpen, Scale, ChevronUp, ChevronDown, Download, FileText, Sparkles, GitBranch, Map, Edit3 } from 'lucide-react'
 import SmartSearch, { SmartFilter } from '@/components/SmartSearch'
 
 const CATEGORIES = [
@@ -41,6 +41,16 @@ export default function BureauPage() {
   const [saving, setSaving] = useState(false)
   const [showOrganigramme, setShowOrganigramme] = useState(false)
   const [filterCat, setFilterCat] = useState<string | null>(null)
+
+  // Zone delegates state
+  const [zones, setZones] = useState<any[]>([])
+  const [showAddZone, setShowAddZone] = useState(false)
+  const [newZoneName, setNewZoneName] = useState('')
+  const [newZoneQuartiers, setNewZoneQuartiers] = useState('')
+  const [editingZone, setEditingZone] = useState<any>(null)
+  const [showAddDelegue, setShowAddDelegue] = useState<string | null>(null)
+  const [delegueSearch, setDelegueSearch] = useState('')
+  const [delegueRole, setDelegueRole] = useState('Délégué')
 
   const exportBureauPDF = () => {
     const allMembres = [...getMembresForCat('executif'), ...getMembresForCat('religieux'), ...getMembresForCat('conseiller')]
@@ -112,6 +122,109 @@ export default function BureauPage() {
     a.click()
   }
 
+  const fetchZones = useCallback(async () => {
+    const res = await fetch('/api/zones')
+    const data = await res.json()
+    setZones(data.zones || [])
+  }, [])
+
+  const handleAddZone = async () => {
+    if (!newZoneName.trim()) return
+    const quartiers = newZoneQuartiers.split(',').map(q => q.trim()).filter(Boolean)
+    await fetch('/api/zones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom: newZoneName, quartiers }),
+    })
+    setNewZoneName('')
+    setNewZoneQuartiers('')
+    setShowAddZone(false)
+    fetchZones()
+  }
+
+  const handleEditZone = async (zone: any) => {
+    const quartiers = editingZone.quartiersText.split(',').map((q: string) => q.trim()).filter(Boolean)
+    await fetch(`/api/zones/${zone.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom: editingZone.nom, quartiers }),
+    })
+    setEditingZone(null)
+    fetchZones()
+  }
+
+  const handleDeleteZone = async (id: string) => {
+    if (!confirm('Supprimer cette zone et tous ses délégués ?')) return
+    await fetch(`/api/zones/${id}`, { method: 'DELETE' })
+    fetchZones()
+  }
+
+  const handleAddDelegue = async (zoneId: string, citoyenId: string) => {
+    await fetch(`/api/zones/${zoneId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add-delegue', citoyenId, role: delegueRole }),
+    })
+    setShowAddDelegue(null)
+    setDelegueSearch('')
+    setDelegueRole('Délégué')
+    fetchZones()
+  }
+
+  const handleRemoveDelegue = async (zoneId: string, citoyenId: string) => {
+    if (!confirm('Retirer ce délégué de la zone ?')) return
+    await fetch(`/api/zones/${zoneId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'remove-delegue', citoyenId }),
+    })
+    fetchZones()
+  }
+
+  const exportDeleguesPDF = () => {
+    const dateFr = new Date().toLocaleDateString('fr-FR')
+    let totalDelegues = 0
+    zones.forEach(z => { totalDelegues += z.delegues?.length || 0 })
+
+    const w = window.open('', '_blank')
+    if (!w) return
+    w.document.write(`<html><head><meta charset="utf-8">
+      <title>Délégués par Zone</title><style>
+      body{font-family:Arial,sans-serif;padding:30px;color:#1a1a1a}
+      h1{color:#002664;border-bottom:3px solid #FECB00;padding-bottom:8px}
+      h2{color:#002664;margin-top:30px;padding:8px 12px;background:#f0f4ff;border-left:4px solid #002664;font-size:16px}
+      .zone-info{color:#666;font-size:12px;margin:4px 0 12px 16px}
+      table{width:100%;border-collapse:collapse;margin-bottom:20px}
+      th{background:#002664;color:white;padding:10px;text-align:left;font-size:12px}
+      td{padding:8px 10px;border-bottom:1px solid #eee;font-size:13px;vertical-align:middle}
+      tr:nth-child(even){background:#f8f9fa}
+      .photo{width:45px;height:45px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb}
+      .no-photo{width:45px;height:45px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-weight:bold;font-size:16px}
+      .footer{margin-top:30px;text-align:center;color:#999;font-size:11px;border-top:1px solid #eee;padding-top:10px}
+      .badge{display:inline-block;background:#FECB00;color:#002664;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold}
+    </style></head><body>
+      <h1>🇹🇩 Délégués par Zone — Colonie Tchadienne</h1>
+      <p style="color:#666;font-size:13px">Généré le ${dateFr} — ${zones.length} zone${zones.length > 1 ? 's' : ''}, ${totalDelegues} délégué${totalDelegues > 1 ? 's' : ''}</p>
+      ${zones.map(zone => {
+        const quartiers = JSON.parse(zone.quartiers || '[]')
+        return `
+          <h2>📍 ${zone.nom}</h2>
+          <div class="zone-info">Quartiers : ${quartiers.length > 0 ? quartiers.join(', ') : 'Aucun quartier défini'}</div>
+          ${zone.delegues?.length > 0 ? `
+            <table><thead><tr><th>N°</th><th>Photo</th><th>Nom & Prénom</th><th>Rôle</th><th>Téléphone</th><th>Ville / Quartier</th></tr></thead><tbody>
+            ${zone.delegues.map((d: any, i: number) => `
+              <tr><td>${i + 1}</td><td>${d.citoyen.photo ? `<img src="${d.citoyen.photo}" class="photo"/>` : `<div class="no-photo">${d.citoyen.prenom[0]}${d.citoyen.nom[0]}</div>`}</td><td><strong>${d.citoyen.nom} ${d.citoyen.prenom}</strong></td><td><span class="badge">${d.role}</span></td><td>${d.citoyen.telephone || '—'}</td><td>${d.citoyen.ville}${d.citoyen.quartier ? ' — ' + d.citoyen.quartier : ''}</td></tr>
+            `).join('')}
+            </tbody></table>
+          ` : '<p style="color:#999;font-size:13px;margin-left:16px">Aucun délégué assigné</p>'}
+        `
+      }).join('')}
+      <div class="footer">Colonie Tchadienne de la Lebombi-Leyou — Document généré automatiquement</div>
+    </body></html>`)
+    w.document.close()
+    w.print()
+  }
+
   const bureauSmartFilters: SmartFilter[] = [
     { label: 'Bureau exécutif complet', description: 'Afficher uniquement les membres du bureau exécutif', params: { cat: 'executif' } },
     { label: 'Conseil religieux', description: 'Afficher uniquement les membres du conseil religieux', params: { cat: 'religieux' } },
@@ -148,8 +261,11 @@ export default function BureauPage() {
   }, [citoyens.length])
 
   useEffect(() => {
-    if (status === 'authenticated') fetchData()
-  }, [status, fetchData])
+    if (status === 'authenticated') {
+      fetchData()
+      fetchZones()
+    }
+  }, [status, fetchData, fetchZones])
 
   const membreIds = new Set(membres.map((m) => m.citoyenId))
   const filteredCitoyens = citoyens.filter(
@@ -328,7 +444,186 @@ export default function BureauPage() {
             ))}
           </div>
         ))}
+        {/* Délégués par Zone */}
+        {!filterCat && (
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+                  <Map size={20} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Délégués par Zone</h2>
+                  <p className="text-xs text-gray-400">{zones.length} zone{zones.length > 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {zones.length > 0 && (
+                  <button onClick={exportDeleguesPDF} className="btn-secondary flex items-center gap-2 text-sm">
+                    <FileText size={16} /> PDF Délégués
+                  </button>
+                )}
+                {isAdmin && (
+                  <button onClick={() => setShowAddZone(true)} className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition">
+                    <Plus size={20} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {zones.length === 0 ? (
+              <div className="card text-center py-8 mb-8">
+                <Map size={40} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-gray-400 text-sm">Aucune zone définie</p>
+                {isAdmin && <button onClick={() => setShowAddZone(true)} className="btn-primary mt-3 text-sm">Créer une zone</button>}
+              </div>
+            ) : (
+              <div className="space-y-4 mb-8">
+                {zones.map((zone) => {
+                  const quartiers = JSON.parse(zone.quartiers || '[]')
+                  return (
+                    <div key={zone.id} className="card">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                            <MapPin size={16} className="text-indigo-600" />
+                            {editingZone?.id === zone.id ? (
+                              <input type="text" value={editingZone.nom} onChange={e => setEditingZone({ ...editingZone, nom: e.target.value })} className="input-field py-1 px-2 text-sm w-48" />
+                            ) : zone.nom}
+                          </h3>
+                          {editingZone?.id === zone.id ? (
+                            <div className="mt-2">
+                              <input type="text" value={editingZone.quartiersText} onChange={e => setEditingZone({ ...editingZone, quartiersText: e.target.value })} placeholder="Quartiers séparés par des virgules" className="input-field py-1 px-2 text-sm w-full" />
+                              <div className="flex gap-2 mt-2">
+                                <button onClick={() => handleEditZone(zone)} className="btn-primary text-xs px-3 py-1">Enregistrer</button>
+                                <button onClick={() => setEditingZone(null)} className="btn-secondary text-xs px-3 py-1">Annuler</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {quartiers.map((q: string) => (
+                                <span key={q} className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full">{q}</span>
+                              ))}
+                              {quartiers.length === 0 && <span className="text-xs text-gray-400">Aucun quartier</span>}
+                            </div>
+                          )}
+                        </div>
+                        {isAdmin && !editingZone && (
+                          <div className="flex gap-1">
+                            <button onClick={() => setEditingZone({ id: zone.id, nom: zone.nom, quartiersText: quartiers.join(', ') })} className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600" title="Modifier">
+                              <Edit3 size={14} />
+                            </button>
+                            <button onClick={() => handleDeleteZone(zone.id)} className="p-1.5 hover:bg-red-50 rounded text-red-400 hover:text-red-600" title="Supprimer">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Delegues list */}
+                      {zone.delegues?.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-3">
+                          {zone.delegues.map((d: any) => (
+                            <div key={d.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                              <div className="w-12 h-12 rounded-xl bg-gray-200 overflow-hidden flex-shrink-0">
+                                {d.citoyen.photo ? (
+                                  <img src={d.citoyen.photo} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <User size={20} className="text-gray-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm text-gray-900 truncate">{d.citoyen.nom} {d.citoyen.prenom}</p>
+                                <p className="text-xs text-indigo-600 font-medium">{d.role}</p>
+                                {d.citoyen.telephone && <p className="text-xs text-gray-400 flex items-center gap-1"><Phone size={10} />{d.citoyen.telephone}</p>}
+                              </div>
+                              {isAdmin && (
+                                <button onClick={() => handleRemoveDelegue(zone.id, d.citoyenId)} className="p-1 hover:bg-red-50 rounded text-red-400 hover:text-red-600 flex-shrink-0">
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {isAdmin && (
+                        <div className="mt-3">
+                          {showAddDelegue === zone.id ? (
+                            <div className="bg-indigo-50/50 border border-indigo-100 rounded-xl p-3">
+                              <div className="flex gap-2 mb-2">
+                                <select value={delegueRole} onChange={e => setDelegueRole(e.target.value)} className="select-field text-sm py-1.5">
+                                  <option>Délégué</option>
+                                  <option>Chef de zone</option>
+                                  <option>Adjoint</option>
+                                  <option>Secrétaire</option>
+                                </select>
+                                <button onClick={() => { setShowAddDelegue(null); setDelegueSearch('') }} className="text-gray-400 hover:text-gray-600 p-1">
+                                  <X size={16} />
+                                </button>
+                              </div>
+                              <div className="relative">
+                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input type="text" placeholder="Rechercher un membre..." value={delegueSearch} onChange={e => { setDelegueSearch(e.target.value); fetchCitoyens() }} className="input-field pl-8 text-sm py-1.5" />
+                                {delegueSearch.length >= 2 && (
+                                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto z-10">
+                                    {citoyens.filter(c =>
+                                      delegueSearch.length >= 2 &&
+                                      !zone.delegues?.some((d: any) => d.citoyenId === c.id) &&
+                                      (c.nom.toLowerCase().includes(delegueSearch.toLowerCase()) || c.prenom.toLowerCase().includes(delegueSearch.toLowerCase()))
+                                    ).slice(0, 10).map(c => (
+                                      <button key={c.id} onClick={() => handleAddDelegue(zone.id, c.id)} className="w-full text-left px-3 py-2 hover:bg-indigo-50 text-sm flex items-center gap-2">
+                                        <User size={14} className="text-gray-400" />
+                                        <span className="font-medium">{c.nom} {c.prenom}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <button onClick={() => { setShowAddDelegue(zone.id); fetchCitoyens() }} className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1">
+                              <Plus size={14} /> Ajouter un délégué
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </main>
+
+      {/* Modal ajout zone */}
+      {showAddZone && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Créer une zone</h3>
+              <button onClick={() => setShowAddZone(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="label-field">Nom de la zone *</label>
+                <input type="text" value={newZoneName} onChange={e => setNewZoneName(e.target.value)} placeholder="Ex: Zone 1 - Centre" className="input-field" />
+              </div>
+              <div>
+                <label className="label-field">Quartiers (séparés par des virgules)</label>
+                <input type="text" value={newZoneQuartiers} onChange={e => setNewZoneQuartiers(e.target.value)} placeholder="Ex: Centre-ville, Marché, Gare" className="input-field" />
+                <p className="text-xs text-gray-400 mt-1">Saisissez les noms des quartiers séparés par des virgules</p>
+              </div>
+              <button onClick={handleAddZone} disabled={!newZoneName.trim()} className="btn-primary w-full py-2.5 disabled:opacity-50 flex items-center justify-center gap-2">
+                <Plus size={18} /> Créer la zone
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal ajout membre */}
       {showAdd && (
